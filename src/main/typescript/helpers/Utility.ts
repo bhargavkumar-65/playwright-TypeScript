@@ -1,5 +1,6 @@
 import { APIRequestContext, expect, Locator, Page } from '@playwright/test'
 
+import { step } from './Decorators'
 import log from './log'
 
 const fs = require('fs')
@@ -16,6 +17,7 @@ export class Utility {
      * Click On An Element With text
      * @param selector Pass the selector of element for which Click action has to be performed
      **/
+    @step('Click on element with text')
     async clickUsingText(args: { text: string; frame?: string; occurance?: number }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Clicking on element with text ${args.text}`)
@@ -38,7 +40,7 @@ export class Utility {
      * Click On An Element With Selector
      * @param selector Pass the selector of element for which Click action has to be performed
      **/
-
+    @step('Click on element')
     async click(args: { selector: string; frame?: string; occurance?: number; timeout?: number; window?: Page }) {
         const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Clicking on element with selector ${args.selector}`)
@@ -67,7 +69,7 @@ export class Utility {
      * Checkbox click On An Element With Selector
      * @param selector Pass the selector of element for which Click action has to be performed
      **/
-
+    @step('Checkbox click on element')
     async check(args: { selector: string; frame?: string; occurance?: number }) {
         const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Clicking on element with selector ${args.selector}`)
@@ -91,6 +93,7 @@ export class Utility {
         }
     }
 
+    @step()
     async waitUntilElementHaveValue(args: { element: string; value: any; frame?: string }) {
         await expect(await new Utility(this.page).getElement({ selector: args.element, frame: args.frame })).toHaveValue(args.value, { timeout: 60000 })
     }
@@ -103,6 +106,7 @@ export class Utility {
      * @param occurance get the occurance of element when multiple elements are found
      * @returns
      */
+    @step('Get Attribute Value')
     async getAttributeValue(args: { selector: string; frame?: string; occurance?: number; attributeName: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         const elCnt = await pg.locator(args.selector).count()
@@ -114,12 +118,11 @@ export class Utility {
     /**
      * Wait Until The Page Is Loaded
      */
+    @step('Wait Until Page Is Loaded')
     async waitUntilPageIsLoaded() {
         try {
             log.info('Waiting for Network calls')
-            await Promise.all([this.page.waitForLoadState('domcontentloaded')
-                , this.page.waitForLoadState('networkidle', { timeout: 10000 })
-            ])
+            await Promise.all([this.page.waitForLoadState('domcontentloaded'), this.page.waitForLoadState('networkidle', { timeout: 10000 })])
         } catch {
             log.error('Timed out waiting for load state')
         }
@@ -130,6 +133,7 @@ export class Utility {
      * @param selector Selector of the element
      * @param text text to be entered     *
      * */
+    @step('Type Text')
     async typeText(args: { selector: string; text: string; frame?: string; window?: Page }) {
         const pg = args.window ? args.window : args.frame ? this.page.frameLocator(args.frame) : this.page
         try {
@@ -146,6 +150,7 @@ export class Utility {
      * @param frame frame selector
      * @returns
      */
+    @step('Get Element By Label')
     async getElementByLabel(args: { selector: string; frame?: string }) {
         const pg = args.frame ? this.page.frameLocator(args.frame) : this.page
         try {
@@ -163,6 +168,7 @@ export class Utility {
      * @param multiple Whether Selector returns multiple elements
      * @param occurance which occurance to wait for if there are multiple occurances
      */
+    @step('Wait For Locator')
     async waitForLocator(args: { selector: string; multiple?: boolean; occurance?: number; frame?: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         if (args.multiple) {
@@ -180,12 +186,14 @@ export class Utility {
      * @param args selector of element and Frame selector if any
      * @returns
      */
+    @step()
     async scrollIntoView(args: { selector: string; frame?: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         await pg.locator(args.selector).scrollIntoViewIfNeeded()
         log.info(`scrolled until the element with selector ${args.selector} is in view`)
     }
 
+    @step('focus on element')
     async focus(args: { selector: string; frame?: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         await pg.locator(args.selector).focus()
@@ -196,6 +204,7 @@ export class Utility {
      * Gets The Count Of Elements Matching Selector
      * @param selector selector of the element
      */
+    @step('Get Count Of Elements')
     async getCountOfElements(args: { selector: string; frame?: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         const count = await pg.locator(args.selector).count()
@@ -209,6 +218,7 @@ export class Utility {
      * @param frame frame selector
      * @returns returns dropdowm
      */
+    @step('Get Dropdown Item With Text')
     async getDropDownItemWithText(args: { text: string; frame?: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Getting the dropdown Item with text ${args.text}`)
@@ -220,6 +230,7 @@ export class Utility {
      * @param text text of the element to be selected
      * @param frame frame selector if any     *
      */
+    @step('Select Dropdown Option')
     async selectDropDownOption(args: { text: string; frame?: string }) {
         // get dropdown option
         await (await this.getDropDownItemWithText({ text: args.text, frame: args.frame })).click()
@@ -230,6 +241,7 @@ export class Utility {
      * @param text text of the element to be selected
      * @param frame frame selector if any     *
      */
+    @step('Select Dropdown Value')
     async selectDropDownValue(args: { selector: string; text: string; frame?: string; window?: Page }) {
         const pg = args.window ? args.window : args.frame ? this.page.frameLocator(args.frame) : this.page
         await pg.locator(args.selector).selectOption(args.text)
@@ -240,6 +252,7 @@ export class Utility {
      * @param clickEvent
      * @returns
      */
+    @step('Wait For New Window')
     async waitForWindow(clickEvent: any) {
         const [popup] = await Promise.all([this.page.waitForEvent('popup'), clickEvent])
         await popup.waitForLoadState()
@@ -252,6 +265,7 @@ export class Utility {
      * @param frame frame selector
      * @returns returns dropdowm
      */
+    @step('Get Dropdown Item With Text')
     async getDropDownItems(args: { frame?: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         return await pg.locator('li[role="option"]').allTextContents()
@@ -263,26 +277,30 @@ export class Utility {
      * @param frame frame selector
      * @returns element
      */
+    @step('Get Element')
     async getElement(args: { selector: string; frame?: string; occurance?: number }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         const elCnt = await pg.locator(args.selector).count()
         log.info(`No of elements found with locator ${args.selector} are ${elCnt}`)
         return elCnt > 1 ? await pg.locator(args.selector).nth(args.occurance ? args.occurance : 0) : await pg.locator(args.selector)
     }
-
+    @step('Get First Element')
     async getElementFirst(args: { selector: string; frame?: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         return await pg.locator(args.selector).first()
     }
 
+    @step('Get Second Element')
     async getElementSecond(args: { selector: string; frame?: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         return await pg.locator(args.selector).nth(1)
     }
+    @step('Get Last Element')
     async getElementLast(args: { selector: string; frame?: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         return await pg.locator(args.selector).last()
     }
+    @step('Download File')
     async downloadFile(args: { selector: string; frame?: string; fileName: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         const downloadPromise = this.page.waitForEvent('download')
@@ -297,6 +315,7 @@ export class Utility {
      * @param frame frame selector
      * @returns element
      */
+    @step('Get Element With Text')
     async getElementWithText(args: { text: string; frame?: string; occurance?: number }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         const elCnt = await pg.locator(`text=${args.text}`).count()
@@ -310,6 +329,7 @@ export class Utility {
      * @param frame frame selector
      * @returns returns dropdowm
      */
+    @step('Get Element Texts')
     async getElementTexts(args: { selector: string; frame?: string }): Promise<string[]> {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         return await pg.locator(args.selector).allTextContents()
@@ -320,6 +340,7 @@ export class Utility {
      * @param args checking for element exists
      * @returns
      */
+    @step('Check If Element Exists')
     async checkIfElementExists(args: { selector: string; frame?: string; window?: Page }) {
         log.info(`checking if element ${args.selector} exists`)
         const pg = args.frame ? this.page.frame(args.frame.replace('#', ''))?.$$(args.selector) : this.page.$$(args.selector)
@@ -327,11 +348,23 @@ export class Utility {
         return pg ? (await pg!).length > 0 : false
     }
 
+    /**
+     *
+     * @param args checking for element Not exists
+     * @returns
+     */
+    @step('Check If Element Not Exists')
     async checkIfElementNotExists(args: { selector: string; frame?: string }) {
         const pg = args.frame ? this.page.frame(args.frame.replace('#', ''))?.$$(args.selector) : this.page.$$(args.selector)
         return (await pg!).length > 0
     }
 
+    /**
+     *
+     * @param args Expand Dropdown Item
+     * @returns
+     */
+    @step('Expand Dropdown Item')
     async expandDropDownItem(args: { selector: string; frame?: string }) {
         const dropdownElement = await this.getElement(args)
         dropdownElement.locator('[arialabel="downArrow"]').click()
@@ -342,6 +375,7 @@ export class Utility {
      *
      * @param args Wait for Specific API calls
      */
+    @step('Wait For API Calls')
     async waitForApiCalls(args: { endpoints: string[]; action: any }) {
         log.info(`waiting for API calls ${args.endpoints}`)
         const promises: any = []
@@ -353,18 +387,33 @@ export class Utility {
         const [response] = await Promise.all(promises)
     }
 
+    /**
+     *
+     * @param args Press Keryboard Event
+     */
+    @step('Press KeyboardEvent')
     async keyboard(args: { keyboardEvent: string; frame?: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         await pg.keyboard.press(args.keyboardEvent)
         log.info(`Focussed element ${args.keyboardEvent}`)
     }
 
+    /**
+     *
+     * @param args Press Keryboard Type
+     */
+    @step('Press Keyboard Type')
     async keyboardType(args: { inputString: string; frame?: string }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         await pg.keyboard.type(args.inputString)
         log.info(`Focussed element ${args.inputString}`)
     }
 
+    /**
+     *
+     * @param args Double Click on a element
+     */
+    @step('Double Click')
     async doubleClick(args: { selector: string; frame?: string; occurance?: number }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Clicking on element with selector ${args.selector}`)
@@ -383,27 +432,32 @@ export class Utility {
         }
     }
 
-    async waitUntilGenerateReportDisappears(args: { element: string; frame?: string }) {
+    @step()
+    async waitUntilElementisHidden(args: { element: string; frame?: string }) {
         await expect(await this.getElement({ selector: args.element, frame: args.frame })).toBeHidden({ timeout: 60000 })
     }
 
+    @step()
     async waitUntilSelectorDisappear(args: { selector: string; frame?: string }) {
         await this.page.waitForTimeout(1000)
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         return await pg.waitForSelector(args.selector, { state: 'detached' })
     }
 
+    @step()
     async handlePopup(buttonToClick: string, frame?: string) {
         const attributeValue = await this.getAttributeValue({ attributeName: 'class', selector: 'body[id*=ext-gen]', frame })
         if (attributeValue!.includes('x-body-masked')) {
             await this.click({ selector: buttonToClick, frame })
         }
     }
+    @step()
     async waitForDocumentLoaded() {
         await this.page.waitForTimeout(5000)
         log.info('Waiting done for 5 seconds')
     }
 
+    @step()
     async getInputValue(args: { selector: string; frame?: string; text: string }) {
         const objProcessIP = await this.getElement({ selector: args.selector, frame: args.frame })
         expect(
@@ -413,6 +467,7 @@ export class Utility {
         ).toBe(args.text)
     }
 
+    @step()
     async clear(args: { selector: string; frame?: string; occurance?: number; timeout?: number }) {
         const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`clearing on element with selector ${args.selector}`)
@@ -437,6 +492,7 @@ export class Utility {
         }
     }
 
+    @step()
     async dblclick(args: { selector: string; frame?: string; occurance?: number; timeout?: number }) {
         const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Duble Clicking on element with selector ${args.selector}`)
@@ -461,7 +517,8 @@ export class Utility {
         }
     }
 
-    async uploadImage(args: { selector: string; frame?: string; imagePath: string, imageName: string }) {
+    @step()
+    async uploadImage(args: { selector: string; frame?: string; imagePath: string; imageName: string }) {
         const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         await pg
             .frameLocator(args.frame)
@@ -473,6 +530,7 @@ export class Utility {
             })
     }
 
+    @step()
     async uploadFile(args: { filePath: string; selector: string; frame?: string; occurance?: number; timeout?: number }) {
         const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`UploadFile on element with selector ${args.selector}`)
@@ -497,8 +555,7 @@ export class Utility {
         }
     }
 
-
-    
+    @step()
     async hexToString(hexCode) {
         let str = ''
         for (let i = 0; i < hexCode.length; i += 2) {
@@ -509,6 +566,7 @@ export class Utility {
         return str
     }
 
+    @step()
     async stringToHex(stringValue) {
         let hex = ''
         for (let i = 0; i < stringValue.length; i++) {
@@ -521,6 +579,7 @@ export class Utility {
         return hex
     }
 
+    @step()
     async getFrame(args: { selector: string }) {
         let frameSelectors: any[] = []
         if (args.selector.includes('|')) {

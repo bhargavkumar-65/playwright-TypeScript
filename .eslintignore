@@ -4,3 +4,6 @@ node_modules/
 /playwright/.cache/
 logs/
 build-js/
+emailGenerator.js
+allure-report/
+allure-results/

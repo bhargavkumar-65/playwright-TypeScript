@@ -1,22 +1,22 @@
 {
     "doves": {
-        "USERNAME" : "YourAutomationUserName@.onmicrosoft.com",
-        "PASSWORD" : "UserName",
-        "BASE_URL" : "https://YourURL.com/"
+        "USERNAME": "YourAutomationUserName@.onmicrosoft.com",
+        "PASSWORD": "UserName",
+        "BASE_URL": "https://YourURL.com/"
     },
     "CLOVES": {
-        "USERNAME" : "YourAutomationUserName@.onmicrosoft.com",
-        "PASSWORD" : "UserName",
-        "BASE_URL" : "https://YourURL.com/"
+        "USERNAME": "YourAutomationUserName@.onmicrosoft.com",
+        "PASSWORD": "UserName",
+        "BASE_URL": "https://YourURL.com/"
     },
     "ORANGES": {
-        "USERNAME" : "YourAutomationUserName@.onmicrosoft.com",
-        "PASSWORD" : "UserName",
-        "BASE_URL" : "https://YourURL.com/"
+        "USERNAME": "YourAutomationUserName@.onmicrosoft.com",
+        "PASSWORD": "UserName",
+        "BASE_URL": "https://YourURL.com/"
     },
     "APPLES": {
-        "USERNAME" : "YourAutomationUserName@.onmicrosoft.com",
-        "PASSWORD" : "UserName",
-        "BASE_URL" : "https://YourURL.com/"
+        "USERNAME": "YourAutomationUserName@.onmicrosoft.com",
+        "PASSWORD": "UserName",
+        "BASE_URL": "https://YourURL.com/"
     }
 }

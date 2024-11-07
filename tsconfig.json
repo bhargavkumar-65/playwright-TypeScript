@@ -1,25 +1,10 @@
 {
     "compilerOptions": {
-        "target": "ES6",
-        "esModuleInterop": true,
+        "target": "ESNext",
         "module": "commonjs",
-        "moduleResolution": "node",
-        "lib": ["es2019", "DOM", "ES6", "DOM.Iterable", "ScriptHost"],
+        "moduleResolution": "Node",
         "sourceMap": true,
-        "declaration": true,
-        "removeComments": false,
-        "noImplicitAny": false,
-        "emitDecoratorMetadata": true,
-        "experimentalDecorators": true,
-        "resolveJsonModule": true,
-        "types": ["jasmine", "node"],
-        "allowJs": false,
-        "rootDir": "./",
-        "outDir": "build-js",
-        "baseUrl": ".",
-        "paths": {
-            "#root": ["."]
-        }
+        "outDir": "../tests-out"
     },
     "include": ["src/**/*"],
     "exclude": ["node_modules", "build-js"]

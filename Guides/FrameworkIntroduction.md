@@ -1,4 +1,3 @@
-
 # Automation Framework Walkthrough
 
 ## Introduction

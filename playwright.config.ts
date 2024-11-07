@@ -1,5 +1,4 @@
 import type { devices, PlaywrightTestConfig } from '@playwright/test'
-
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
@@ -43,6 +42,7 @@ const config: PlaywrightTestConfig = {
         ],
         ['junit', { outputFile: 'results1.xml' }],
         ['html', { open: 'never' }],
+        ['./src/main/typescript/helpers/CustomReporter'], // Adding custom AzureDevopsReporter
     ],
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
     use: {
@@ -70,7 +70,6 @@ const config: PlaywrightTestConfig = {
             },
         },
     ],
-
 }
 
 export default config

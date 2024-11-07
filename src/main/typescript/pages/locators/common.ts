@@ -4,5 +4,5 @@ export default class Common {
     static exampleCSSLocator = '#MainAccountManager-buttonEl'
     static examplePlaywrightLocator = 'text=Loading...'
     static exampleConditionBasedLocator = ENV.BASE_URL === 'https://doves.kognifailabs.com/' ? '#searchList-inputEl' : '[placeholder="Search"][type="search"]'
-	static exampleParametarizedLocator = (buttonClass: string) => `xpath=//div[@class="ModalPanel ModalPanel-default"]//following::div[contains(@class,"${buttonClass}")]`;
+    static exampleParametarizedLocator = (buttonClass: string) => `xpath=//div[@class="ModalPanel ModalPanel-default"]//following::div[contains(@class,"${buttonClass}")]`
 }

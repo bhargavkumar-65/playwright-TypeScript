@@ -1,4 +1,3 @@
-
 # Playwright Framework: TypeScript, Prettier, and ESLint Setup
 
 This README provides an overview of the **Playwright framework** session where we covered essential aspects of TypeScript errors, using **Prettier** for code formatting, and **ESLint** for linting the Playwright tests. Additionally, we explored how to configure and apply linting and formatting rules for a cleaner, error-free codebase.

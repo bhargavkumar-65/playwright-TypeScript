@@ -1,5 +1,3 @@
-
-
 ---
 
 # Playwright TypeScript Test Framework
