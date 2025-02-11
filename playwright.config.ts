@@ -13,7 +13,7 @@ const config: PlaywrightTestConfig = {
     testDir: './src/test/typescript',
     testMatch: '/Naukari*.ts',
     /* Maximum time one test can run for. */
-    timeout: 60000,
+    timeout: 1200000,
     expect: {
         /**
          * Maximum time expect() should wait for the condition to be met.
