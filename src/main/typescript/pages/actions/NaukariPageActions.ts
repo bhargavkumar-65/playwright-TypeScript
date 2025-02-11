@@ -1,5 +1,4 @@
 import { BasePage } from '../../base/BasePage'
-import MDHLoginPageLocators from '../locators/MDHLoginPageLocators'
 
 export class NaukariPageActions extends BasePage {
 
