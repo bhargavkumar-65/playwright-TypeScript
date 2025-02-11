@@ -13,6 +13,8 @@ export class NaukariPageActions extends BasePage {
     async loginintoNaukari() {
         await this.page.goto(this.ENV.BASE_URL)
         await this.utility.waitUntilPageIsLoaded()
+        await this.page.locator(NaukariPageActions.loginBtn).waitFor({ state: 'visible',timeout:120000 })
+        await this.utility.waitForLocator({ selector: NaukariPageActions.loginBtn })
         await this.utility.click({ selector: NaukariPageActions.loginBtn })
         await this.utility.typeText({ selector: NaukariPageActions.usernameField, text: process.env.NAUKARI_USERNAME})
         await this.utility.typeText({ selector: NaukariPageActions.passwordField, text: process.env.NAUKARI_PASSWORD})
