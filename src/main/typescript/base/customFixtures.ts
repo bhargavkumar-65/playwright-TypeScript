@@ -2,6 +2,7 @@ import { test as base } from '@playwright/test'
 
 import { GoogleHomePageActions } from '../pages/actions/GoogleHomePageActions'
 import { LoginPageActions } from '../pages/actions/LoginPageActions'
+import {NaukariPageActions} from '../pages/actions/NaukariPageActions'
 
 /**
  * Declare the Pages that you want to use in your test
@@ -9,6 +10,7 @@ import { LoginPageActions } from '../pages/actions/LoginPageActions'
 type MyFixtures = {
     googleHomePageActions: GoogleHomePageActions
     loginPageActions: LoginPageActions
+    naukariPageActions: NaukariPageActions
 }
 
 /**
@@ -22,5 +24,8 @@ export const test = base.extend<MyFixtures>({
     loginPageActions: async ({ page }, use) => {
         return await use(new LoginPageActions(page))
     },
+    naukariPageActions: async ({ page }, use) => {
+        return await use(new NaukariPageActions(page))
+    }
 })
 export { expect } from '@playwright/test'

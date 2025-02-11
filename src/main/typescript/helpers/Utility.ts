@@ -18,18 +18,19 @@ export class Utility {
      * @param selector Pass the selector of element for which Click action has to be performed
      **/
     @step('Click on element with text')
-    async clickUsingText(args: { text: string; frame?: string; occurance?: number }) {
+    async clickUsingText(args: { text: string; frame?: string; occurance?: number; force?: boolean }) {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Clicking on element with text ${args.text}`)
         try {
             const noOfElementsFound = await pg.locator(`text=${args.text}`).count()
+            log.info(`Found ${noOfElementsFound} element(s) with selector ${args.text}`)
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(`text=${args.text}`)
-                    .nth(args.occurance ? args.occurance : 1)
-                    .click()
+                    .nth(args.occurance ? args.occurance : 0)
+                    .click(args.force ? { force: true } : {})
             } else {
-                await pg.locator(`text=${args.text}`).click()
+                await pg.locator(`text=${args.text}`).click(args.force ? { force: true } : {})
             }
         } catch (ex) {
             log.error(`Clicking on element with text ${args.text} failed with exception ${ex}`)
@@ -41,11 +42,12 @@ export class Utility {
      * @param selector Pass the selector of element for which Click action has to be performed
      **/
     @step('Click on element')
-    async click(args: { selector: string; frame?: string; occurance?: number; timeout?: number; window?: Page }) {
+    async click(args: { selector: string; frame?: string; occurance?: number; timeout?: number; window?: Page; force?: boolean }) {
         const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Clicking on element with selector ${args.selector}`)
         try {
             const noOfElementsFound = await pg.locator(args.selector).count()
+            log.info(`Found ${noOfElementsFound} element(s) with selector ${args.selector}`)
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(args.selector)
@@ -55,13 +57,63 @@ export class Utility {
                 await pg
                     .locator(args.selector)
                     .nth(args.occurance ? args.occurance : 0)
-                    .click()
+                    .click(args.force ? { force: true } : {})
             } else {
                 await pg.locator(args.selector).waitFor()
-                await pg.locator(args.selector).click()
+                await pg.locator(args.selector).click(args.force ? { force: true } : {})
             }
         } catch (ex) {
             log.error(`Clicking on element ${args.selector} failed with exception ${ex}`)
+        }
+    }
+
+    /**
+     * Hover On An Element With Selector
+     * @param selector Pass the selector of element for which Hover action has to be performed
+     **/
+    @step('Hover on element')
+    async hover(args: { selector: string; frame?: string; occurance?: number; timeout?: number; window?: Page }) {
+        const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        log.info(`Hovering on element with selector ${args.selector}`)
+        try {
+            const noOfElementsFound = await pg.locator(args.selector).count()
+            log.info(`Found ${noOfElementsFound} element(s) with selector ${args.selector}`)
+            if (noOfElementsFound > 1) {
+                await pg
+                    .locator(args.selector)
+                    .nth(args.occurance ? args.occurance : 0)
+                    .waitFor({ timeout: args.timeout ? args.timeout : 30000 })
+
+                await pg
+                    .locator(args.selector)
+                    .nth(args.occurance ? args.occurance : 0)
+                    .hover()
+            } else {
+                await pg.locator(args.selector).waitFor()
+                await pg.locator(args.selector).hover()
+            }
+        } catch (ex) {
+            log.error(`Hovering on element ${args.selector} failed with exception ${ex}`)
+        }
+    }
+
+    /**
+     * Drag And Drop An Element On Another Element With Selectors
+     * @param sourceSelector Pass the selector of element to be dragged
+     * @param targetSelector Pass the selector of element on which the element has to be dropped
+     **/
+    @step('Drag and drop an element on another element')
+    async dragAndDrop(args: { sourceSelector: string; targetSelector: string; frame?: string; occurance?: number; timeout?: number; window?: Page; force?: boolean }) {
+        const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        log.info(`Converting the elements with selector ${args.sourceSelector} & ${args.targetSelector} to draggable elements`)
+        let sourceElement = await pg.locator(args.sourceSelector).nth(args.occurance ? args.occurance : 0).toString()
+            .replace('Locator@', '').replace(/\\/g, '').replace(`locator('`, '').replace(`').first()`, ' >> nth=0');
+        let targetElement = await pg.locator(args.targetSelector).nth(args.occurance ? args.occurance : 0).toString()
+            .replace('Locator@', '').replace(/\\/g, '').replace(`locator('`, '').replace(`').first()`, ' >> nth=0');
+        try {
+            await pg.dragAndDrop(sourceElement, targetElement, { force: args.force ? args.force : false })
+        } catch (ex) {
+            log.error(`Drag and drop of element ${args.sourceSelector} on element ${args.targetSelector} failed with exception ${ex}`)
         }
     }
 
@@ -78,11 +130,11 @@ export class Utility {
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(args.selector)
-                    .nth(args.occurance ? args.occurance : 1)
+                    .nth(args.occurance ? args.occurance : 0)
                     .waitFor()
                 await pg
                     .locator(args.selector)
-                    .nth(args.occurance ? args.occurance : 1)
+                    .nth(args.occurance ? args.occurance : 0)
                     .click()
             } else {
                 await pg.locator(args.selector).waitFor()
@@ -111,8 +163,60 @@ export class Utility {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         const elCnt = await pg.locator(args.selector).count()
         log.info(`No of elements found with locator ${args.selector} are ${elCnt}`)
-        const element = elCnt > 1 ? await pg.locator(args.selector).nth(args.occurance ? args.occurance : 1) : await pg.locator(args.selector)
+        const element = elCnt > 1 ? await pg.locator(args.selector).nth(args.occurance ? args.occurance : 0) : await pg.locator(args.selector)
         return await element.getAttribute(args.attributeName)
+    }
+
+    /**
+     * Get InnerText of an Element
+     * @param selector Element selector
+     * @returns innerText of the element
+     */
+    @step('Get InnerText of Element')
+    async getInnerText(args: { selector: string; frame?: string; occurance?: number }) {
+        const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        const elCnt = await pg.locator(args.selector).count()
+        log.info(`No of elements found with locator ${args.selector} are ${elCnt}`)
+        const element = elCnt > 1 ? await pg.locator(args.selector).nth(args.occurance ? args.occurance : 0) : await pg.locator(args.selector)
+        return await element.innerText()
+    }
+
+    /**
+     * Get Html attribute value of an Element
+     * @param selector Element selector
+     * @param attributeName Attribute Value that we want
+     * @returns html attribute value of the element
+     */
+    async getHtmlAttributeValue(args: { selector: string; frame?: string; occurance?: number; attributeName: string }) {
+        const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        const elCnt = await pg.locator(args.selector).count()
+        log.info(`No of elements found with locator ${args.selector} are ${elCnt}`)
+        const element = elCnt > 1 ? await pg.locator(args.selector).nth(args.occurance ? args.occurance : 0) : await pg.locator(args.selector)
+        switch (args.attributeName) {
+            case "value":
+                return await element.evaluate(e => (e as HTMLInputElement).value)
+            case "ariaSelected":
+                return await element.evaluate(e => (e as HTMLInputElement).ariaSelected)
+            case "disabled":
+                return await element.evaluate(e => (e as HTMLInputElement).disabled)
+        }
+    }
+
+    /**
+     * Get Css property value of an Element
+     * @param selector Element selector
+     * @param attributeName Css property whose value we want
+     * @returns Css property value of the element
+     */
+    async getCssValue(args: { selector: string; cssProperty: string; frame?: string; occurance?: number }) {
+        const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+
+        return await pg
+            .locator(args.selector)
+            .nth(args.occurance ? args.occurance : 0)
+            .evaluate((el, _cssProperty) => {
+                return window.getComputedStyle(el).getPropertyValue(_cssProperty);
+            }, args.cssProperty)
     }
 
     /**
@@ -134,11 +238,49 @@ export class Utility {
      * @param text text to be entered     *
      * */
     @step('Type Text')
-    async typeText(args: { selector: string; text: string; frame?: string; window?: Page }) {
+    async typeText(args: { selector: string; text: string; frame?: string; window?: Page; occurance?: number }) {
         const pg = args.window ? args.window : args.frame ? this.page.frameLocator(args.frame) : this.page
         try {
             log.info(`Trying to get the selector ${args.selector} `)
-            await pg.locator(args.selector).fill(args.text)
+            const noOfElementsFound = await pg.locator(args.selector).count()
+            if (noOfElementsFound > 1) {
+                await pg
+                    .locator(args.selector)
+                    .nth(args.occurance ? args.occurance : 0)
+                    .fill(args.text)
+            } else {
+                await pg.locator(args.selector).fill(args.text)
+            }
+            log.info(`Sent Text ${args.text} to element ${args.selector}`)
+        } catch (ex) {
+            log.error(`Unable to find the element ${args.selector}`)
+        }
+    }
+
+    /**
+     * Find Element And Send Keys sequentially
+     * @param selector Selector of the element
+     * @param text text to be entered     *
+     * */
+    async typeTextSequentially(args: { selector: string; text: string; frame?: string; window?: Page; occurance?: number; }) {
+        const pg = args.window ? args.window : args.frame ? this.page.frameLocator(args.frame) : this.page
+        try {
+            log.info(`Trying to get the selector ${args.selector} `)
+            const noOfElementsFound = await pg.locator(args.selector).count()
+            if (noOfElementsFound > 1) {
+                await pg
+                    .locator(args.selector)
+                    .nth(args.occurance ? args.occurance : 0)
+                    .fill("")
+
+                await pg
+                    .locator(args.selector)
+                    .nth(args.occurance ? args.occurance : 0)
+                    .pressSequentially(args.text)
+            } else {
+                await pg.locator(args.selector).fill("")
+                await pg.locator(args.selector).pressSequentially(args.text)
+            }
             log.info(`Sent Text ${args.text} to element ${args.selector}`)
         } catch (ex) {
             log.error(`Unable to find the element ${args.selector}`)
@@ -174,7 +316,7 @@ export class Utility {
         if (args.multiple) {
             await pg
                 .locator(args.selector)
-                .nth(args.occurance ? args.occurance : 1)
+                .nth(args.occurance ? args.occurance : 0)
                 .waitFor({ timeout: 30000 })
         } else {
             await await pg.locator(args.selector).waitFor({ timeout: 30000 })
@@ -242,9 +384,12 @@ export class Utility {
      * @param frame frame selector if any     *
      */
     @step('Select Dropdown Value')
-    async selectDropDownValue(args: { selector: string; text: string; frame?: string; window?: Page }) {
+    async selectDropDownValue(args: { selector: string; text: string; frame?: string; window?: Page; occurance?: number }) {
         const pg = args.window ? args.window : args.frame ? this.page.frameLocator(args.frame) : this.page
-        await pg.locator(args.selector).selectOption(args.text)
+        await pg
+            .locator(args.selector)
+            .nth(args.occurance ? args.occurance : 0)
+            .selectOption(args.text)
         log.info(`clicked on dropdown Item with text ${args.text}`)
     }
     /**
@@ -320,7 +465,7 @@ export class Utility {
         const pg = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         const elCnt = await pg.locator(`text=${args.text}`).count()
         log.info(`No of elements found with text ${args.text} are ${elCnt}`)
-        return elCnt > 1 ? await pg.locator(`text=${args.text}`).nth(args.occurance ? args.occurance : 1) : await pg.locator(`text=${args.text}`)
+        return elCnt > 1 ? await pg.locator(`text=${args.text}`).nth(args.occurance ? args.occurance : 0) : await pg.locator(`text=${args.text}`)
     }
 
     /**
@@ -422,7 +567,7 @@ export class Utility {
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(args.selector)
-                    .nth(args.occurance ? args.occurance : 1)
+                    .nth(args.occurance ? args.occurance : 0)
                     .dblclick()
             } else {
                 await pg.locator(args.selector).dblclick()
@@ -476,12 +621,12 @@ export class Utility {
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(args.selector)
-                    .nth(args.occurance ? args.occurance : 1)
+                    .nth(args.occurance ? args.occurance : 0)
                     .waitFor({ timeout: args.timeout ? args.timeout : 30000 })
 
                 await pg
                     .locator(args.selector)
-                    .nth(args.occurance ? args.occurance : 1)
+                    .nth(args.occurance ? args.occurance : 0)
                     .clear()
             } else {
                 await pg.locator(args.selector).waitFor()
@@ -501,12 +646,12 @@ export class Utility {
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(args.selector)
-                    .nth(args.occurance ? args.occurance : 1)
+                    .nth(args.occurance ? args.occurance : 0)
                     .waitFor({ timeout: args.timeout ? args.timeout : 30000 })
 
                 await pg
                     .locator(args.selector)
-                    .nth(args.occurance ? args.occurance : 1)
+                    .nth(args.occurance ? args.occurance : 0)
                     .dblclick()
             } else {
                 await pg.locator(args.selector).waitFor()
@@ -539,12 +684,12 @@ export class Utility {
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(args.selector)
-                    .nth(args.occurance ? args.occurance : 1)
+                    .nth(args.occurance ? args.occurance : 0)
                     .waitFor({ timeout: args.timeout ? args.timeout : 30000 })
 
                 await pg
                     .locator(args.selector)
-                    .nth(args.occurance ? args.occurance : 1)
+                    .nth(args.occurance ? args.occurance : 0)
                     .setInputFiles(args.filePath)
             } else {
                 await pg.locator(args.selector).waitFor()

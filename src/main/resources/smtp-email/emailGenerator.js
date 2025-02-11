@@ -210,7 +210,7 @@ class EmailGenerator {
                                             <tbody>
                                                 <tr>
                                                     <td style="font-family:'Open Sans', Arial, sans-serif; font-size:11px; line-height:18px; color:#999999;"
-                                                        valign="top" align="center">For any assistance with automation test please connect with KDI Automation Team (dgc250@kdi.kongsberg.com)
+                                                        valign="top" align="center">For any assistance with automation test please connect with Automation Team
                                                     </td>
                                                 </tr>
                                             </tbody>

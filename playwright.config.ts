@@ -11,9 +11,9 @@ import type { devices, PlaywrightTestConfig } from '@playwright/test'
 const config: PlaywrightTestConfig = {
     globalSetup: require.resolve('./src/main/typescript/helpers/global-setup.ts'),
     testDir: './src/test/typescript',
-    testMatch: '/*.ts',
+    testMatch: '/Naukari*.ts',
     /* Maximum time one test can run for. */
-    timeout: 1 * 60 * 60 * 60000,
+    timeout: 60000,
     expect: {
         /**
          * Maximum time expect() should wait for the condition to be met.
@@ -42,6 +42,7 @@ const config: PlaywrightTestConfig = {
         ],
         ['junit', { outputFile: 'results1.xml' }],
         ['html', { open: 'never' }],
+        [process.env.CI === 'true' ? 'blob' : 'html', { open: 'never' }],
         ['./src/main/typescript/helpers/CustomReporter'], // Adding custom AzureDevopsReporter
     ],
     /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
@@ -49,18 +50,18 @@ const config: PlaywrightTestConfig = {
         /* Maximum time each action such as `click()` can take. Defaults to 0 (no limit). */
         actionTimeout: 0,
         screenshot: 'on',
-        trace: 'on-first-retry',
+        trace: 'on',
         acceptDownloads: true,
         permissions: ['clipboard-read', 'clipboard-write'],
-        video: 'retain-on-failure',
+        video: 'on',
     },
 
     /* Configure projects for major browsers */
     projects: [
         {
-            name: 'Google Chrome',
+            name: 'chromium',
             use: {
-                channel: 'chrome',
+                channel: 'chromium',
                 acceptDownloads: true,
                 headless: false,
                 viewport: null,

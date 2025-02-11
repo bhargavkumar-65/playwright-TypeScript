@@ -2,7 +2,7 @@
     "doves": {
         "USERNAME": "YourAutomationUserName@.onmicrosoft.com",
         "PASSWORD": "UserName",
-        "BASE_URL": "https://YourURL.com/"
+        "BASE_URL": "https://www.naukri.com/"
     },
     "CLOVES": {
         "USERNAME": "YourAutomationUserName@.onmicrosoft.com",
@@ -18,5 +18,11 @@
         "USERNAME": "YourAutomationUserName@.onmicrosoft.com",
         "PASSWORD": "UserName",
         "BASE_URL": "https://YourURL.com/"
+    },
+    "AzureDevOps": {
+        "USERNAME": "YOUR_KDI_EMAILID",
+        "PAT_TOKEN": "YOUR_AZURE_DEVOPS_PAT_TOKEN",
+        "BASE_URL": "YOUR_AZURE_DEVOPS_URL",
+        "PROJECT": "YOUR_PROJECT_NAME_IN_AZURE_DEVOPS"
     }
 }

@@ -1,0 +1,212 @@
+trigger:
+    - main
+
+variables:
+    CI: true
+    Smtp_Host: $(smtpHost)
+    Smtp_Password: $(smtpPassword)
+    Ftp_ServerURL: $(ftpServerURL)
+    Ftp_ServerUserName: $(ftpServerUserName)
+    Ftp_ServerPassword: $(ftpServerPassword)
+
+jobs:
+    - job: playwright_tests
+      displayName: 'Execute Playwright Tests'
+      strategy:
+          matrix:
+              chromium-1:
+                  project: chromium
+                  shard: 1/3
+              chromium-2:
+                  project: chromium
+                  shard: 2/3
+              chromium-3:
+                  project: chromium
+                  shard: 3/3
+      pool:
+          vmImage: ubuntu-latest
+          container: mcr.microsoft.com/playwright:v1.49.1-noble
+      steps:
+          - task: NodeTool@0
+            inputs:
+                versionSpec: '18'
+            displayName: 'Install Node.js'
+
+          - script: npm i
+            displayName: 'Install dependencies'
+
+          - script: npm i cross-env -g
+            displayName: 'Install cross-env globally'
+
+          - script: npm i allure-commandline -g
+            displayName: 'Install allure-commandline globally'
+
+          - script: npx playwright install --with-deps
+            displayName: 'Install Playwright browsers'
+
+          - script: cross-env environmentToRun=ORANGES xvfb-run npx playwright test --project=$(project) --shard=$(shard)
+            displayName: 'Run Playwright tests'
+            env:
+                CI: 'true'
+          - script: |
+                shard_sanitized=$(echo $(shard) | sed 's|/|-|g')
+                echo "##vso[task.setvariable variable=shard_sanitized]$(echo $(shard) | sed 's|/|-|g')"
+            displayName: 'Sanitize shard variable'
+            condition: always()
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Upload blob report To Artifacts'
+            condition: succeededOrFailed()
+            inputs:
+                targetPath: 'blob-report'
+                artifactName: 'blob-report-$(shard_sanitized)'
+                publishLocation: 'pipeline'
+
+          - task: PublishPipelineArtifact@1
+            displayName: 'Upload allure results To Artifacts'
+            condition: succeededOrFailed()
+            inputs:
+                targetPath: 'allure-results'
+                artifactName: 'allure-results-$(shard_sanitized)'
+                publishLocation: 'pipeline'
+
+    - job: merge_reports_send_email
+      displayName: 'Create, Upload Reports and Send Email'
+      dependsOn: playwright_tests
+      condition: always()
+      pool:
+          vmImage: windows-latest
+      steps:
+          - checkout: self
+
+          - task: NodeTool@0
+            inputs:
+                versionSpec: '18'
+            displayName: 'Install Node.js'
+
+          - script: |
+                npm i
+                npm i allure-commandline -g
+            displayName: 'Install dependencies'
+
+          - task: DownloadPipelineArtifact@2
+            condition: succeededOrFailed()
+            inputs:
+                artifactName: 'blob-report-1-3'
+                targetPath: 'all-blob-reports'
+
+          - task: DownloadPipelineArtifact@2
+            condition: succeededOrFailed()
+            inputs:
+                artifactName: 'blob-report-2-3'
+                targetPath: 'all-blob-reports'
+
+          - task: DownloadPipelineArtifact@2
+            condition: succeededOrFailed()
+            inputs:
+                artifactName: 'blob-report-3-3'
+                targetPath: 'all-blob-reports'
+
+          - task: DownloadPipelineArtifact@2
+            condition: succeededOrFailed()
+            inputs:
+                artifactName: 'allure-results-1-3'
+                targetPath: 'allure-results'
+
+          - task: DownloadPipelineArtifact@2
+            condition: succeededOrFailed()
+            inputs:
+                artifactName: 'allure-results-2-3'
+                targetPath: 'allure-results'
+
+          - task: DownloadPipelineArtifact@2
+            condition: succeededOrFailed()
+            inputs:
+                artifactName: 'allure-results-3-3'
+                targetPath: 'allure-results'
+
+          - script: |
+                npx playwright merge-reports --reporter html ./all-blob-reports
+            displayName: 'Generate Playwright Report'
+
+          # - script: npm i allure-commandline -g
+          #   displayName: 'Install allure-commandline globally'
+
+          - script: |
+                allure generate allure-results
+            displayName: 'Create Allure Reports'
+
+          - task: FtpUpload@2
+            displayName: 'Upload Playwright Report'
+            inputs:
+                credentialsOption: 'inputs'
+                serverUrl: $(Ftp_ServerURL)
+                username: $(Ftp_ServerUserName)
+                password: $(Ftp_ServerPassword)
+                rootDirectory: '$(Build.SourcesDirectory)/playwright-report'
+                filePatterns: '**'
+                remoteDirectory: '/site/wwwroot/E2E/Shard/html-report-$(Build.BuildId)'
+                preservePaths: true
+                clean: false
+                trustSSL: true
+            condition: always()
+
+          - task: FtpUpload@2
+            displayName: 'Upload Allure Report'
+            inputs:
+                credentialsOption: 'inputs'
+                serverUrl: $(Ftp_ServerURL)
+                username: $(Ftp_ServerUserName)
+                password: $(Ftp_ServerPassword)
+                rootDirectory: '$(Build.SourcesDirectory)/allure-report'
+                filePatterns: '**'
+                remoteDirectory: '/site/wwwroot/E2E/Shard/allure-report-$(Build.BuildId)'
+                preservePaths: true
+                clean: false
+                trustSSL: true
+            condition: always()
+
+          - task: FtpUpload@2
+            displayName: 'Upload web.config for Allure Report'
+            inputs:
+                credentialsOption: 'inputs'
+                serverUrl: $(Ftp_ServerURL)
+                username: $(Ftp_ServerUserName)
+                password: $(Ftp_ServerPassword)
+                rootDirectory: '$(Build.SourcesDirectory)/src/main/resources/allure'
+                filePatterns: 'Web.config'
+                remoteDirectory: '/site/wwwroot/E2E/Shard/allure-report-$(Build.BuildId)'
+                preservePaths: true
+                clean: false
+                trustSSL: true
+            condition: always()
+
+          - task: UseDotNet@2
+            inputs:
+                version: '3.1.x'
+
+          - script: |
+                cd src/main/resources/smtp-email/
+                unzip SMTPUtil.zip
+            displayName: 'unzip SMTPUtil.zip'
+            condition: always()
+
+          - task: Bash@3
+            inputs:
+                targetType: 'inline'
+                script: |
+                    cd src/main/resources/smtp-email/
+                    chmod 755 emailGenerator.js
+                    node emailGenerator.js 'Sharding POC' 'ShardReport/allure-report-$(Build.BuildId)'
+            displayName: 'Generate Email Report'
+            condition: always()
+
+          - task: CmdLine@2
+            inputs:
+                script: |
+                    cd src/main/resources/smtp-email/SMTPUtil/
+                    ls -ltr
+                    smtp-util --sender:${Host} --toList:${emailID} --subject:Sharding_POC  --htmlFile:$(Build.SourcesDirectory)/emailReport.html --displayName:Sharding POC Automation Results --attachments:$(Build.SourcesDirectory)/emailReport.html --port:465 --host:$(Smtp_Host) --userID:kognifauto@kognif.ai --password:$(Smtp_Password)
+            displayName: 'Send Email Report'
+            condition: always()
+

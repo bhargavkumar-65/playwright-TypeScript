@@ -6,7 +6,8 @@
     "scripts": {
         "clean": "rimraf build-js & rimraf allure-results",
         "tests": "cross-env environmentToRun=ORANGES npx playwright test StandardTestSpecFile.spec.ts",
-        "testsonDoves": "cross-env environmentToRun=doves npx playwright test StandardTestSpecFile.spec.ts",
+        "updateNaukari": "cross-env environmentToRun=doves npx playwright test NaukariProfileUpdate.spec.ts",
+        "shard": "cross-env environmentToRun=ORANGES npx playwright test --project=$(project) --shard=$(shard)",
         "tsc": "tsc",
         "build": "npm run clean & npm run tsc",
         "pretest": "npm run build & mkdirp logs",

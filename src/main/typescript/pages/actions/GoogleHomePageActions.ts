@@ -8,12 +8,12 @@ export class GoogleHomePageActions extends BasePage {
     async googleSearch() {
         await this.page.goto('https://google.com')
         await this.utility.waitUntilPageIsLoaded()
-        await this.utility.waitForLocator({ selector: GoogleHomePageLocators.searchBox })
-        await this.utility.click({ selector: GoogleHomePageLocators.searchBox })
-        await this.utility.typeText({ selector: GoogleHomePageLocators.searchBox, text: 'Kongsberg Digital' })
-        await this.utility.click({ selector: GoogleHomePageLocators.gooleImage })
-        await this.page.keyboard.press('Escape')
-        await this.utility.click({ selector: GoogleHomePageLocators.googleSearchBtn })
-        await this.utility.waitUntilPageIsLoaded()
+        // await this.utility.waitForLocator({ selector: GoogleHomePageLocators.searchBox })
+        // await this.utility.click({ selector: GoogleHomePageLocators.searchBox })
+        // await this.utility.typeText({ selector: GoogleHomePageLocators.searchBox, text: 'Playwright Automation' })
+        // await this.utility.click({ selector: GoogleHomePageLocators.gooleImage })
+        // await this.page.keyboard.press('Escape')
+        // await this.utility.click({ selector: GoogleHomePageLocators.googleSearchBtn })
+        // await this.utility.waitUntilPageIsLoaded()
     }
 }
