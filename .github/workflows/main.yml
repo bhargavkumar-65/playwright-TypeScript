@@ -34,5 +34,5 @@ jobs:
       - name: Run Playwright tests
         run: xvfb-run npm run updateNaukari
         env:
-        NAUKARI_USERNAME: ${{ env.NAUKARI_USERNAME }}
-        NAUKARI_PASSWORD: ${{ env.NAUKARI_PASSWORD }}
+          NAUKARI_USERNAME: ${{ env.NAUKARI_USERNAME }}
+          NAUKARI_PASSWORD: ${{ env.NAUKARI_PASSWORD }}
