@@ -26,7 +26,7 @@
     "author": "",
     "license": "ISC",
     "devDependencies": {
-        "@playwright/test": "^1.32.1",
+        "@playwright/test": "^1.50.0",
         "@reportportal/agent-js-playwright": "^5.0.8",
         "@types/fs-extra": "^9.0.13",
         "@types/jasmine": "^2.5.43",
