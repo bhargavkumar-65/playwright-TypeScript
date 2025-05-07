@@ -1,12 +1,17 @@
 import { FullConfig } from '@playwright/test'
 import dotenv from 'dotenv'
+import rimraf from 'rimraf'
 
 async function globalSetup(_config: FullConfig) {
-    // if (process.env.test_user) {
-    //     dotenv.config({
-    //         path: `../../resources/env/.env.${process.env.test_user}`,
-    //         override: true,
-    //     })
-    // }
+    if (process.env.environmentToRun) {
+        dotenv.config({
+            path: `./src/main/resources/env/.env.${process.env.environmentToRun}`,
+            override: true,
+        })
+    }
+
+    await new Promise(resolve => {
+        rimraf(`./allure-results`, resolve)
+    })
 }
 export default globalSetup

@@ -1,4 +1,4 @@
-import ENV from '../../helpers/env'
+import ENV from '../../../resources/env/env'
 export default class Common {
     static exampleXpathLocator = '(//td[contains(@class,"Welcome to KDI")])'
     static exampleCSSLocator = '#MainAccountManager-buttonEl'

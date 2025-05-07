@@ -1,51 +1,10 @@
-'use strict'
-var __createBinding =
-    (this && this.__createBinding) ||
-    (Object.create
-        ? function (o, m, k, k2) {
-              if (k2 === undefined) k2 = k
-              var desc = Object.getOwnPropertyDescriptor(m, k)
-              if (!desc || ('get' in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-                  desc = {
-                      enumerable: true,
-                      get: function () {
-                          return m[k]
-                      },
-                  }
-              }
-              Object.defineProperty(o, k2, desc)
-          }
-        : function (o, m, k, k2) {
-              if (k2 === undefined) k2 = k
-              o[k2] = m[k]
-          })
-var __setModuleDefault =
-    (this && this.__setModuleDefault) ||
-    (Object.create
-        ? function (o, v) {
-              Object.defineProperty(o, 'default', { enumerable: true, value: v })
-          }
-        : function (o, v) {
-              o['default'] = v
-          })
-var __importStar =
-    (this && this.__importStar) ||
-    function (mod) {
-        if (mod && mod.__esModule) return mod
-        var result = {}
-        if (mod != null)
-            for (var k in mod)
-                if (k !== 'default' && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k)
-        __setModuleDefault(result, mod)
-        return result
-    }
-Object.defineProperty(exports, '__esModule', { value: true })
-const cheerio = __importStar(require('cheerio'))
-const fs = __importStar(require('fs'))
-const path = __importStar(require('path'))
+import * as cheerio from 'cheerio'
+import * as fs from 'fs'
+import * as path from 'path'
+
 class EmailGenerator {
-    constructor() {
-        this.mainHtml = `<html>
+
+    private mainHtml = `<html>
 
     <head>
         <title>Execution Report</title>
@@ -68,7 +27,7 @@ class EmailGenerator {
                                             <tbody>
                                                 <tr>
                                                     <td style="font-family:'Open Sans', Arial, sans-serif; font-size:20px; line-height:15px; color:#160d21;"
-                                                    valign="top" align="center">Automation Tests Execution Report</td>
+                                                        valign="top" align="center">Automated UI Tests Execution Report</td>
                                                 </tr>
                                             </tbody>
                                         </table>
@@ -226,72 +185,83 @@ class EmailGenerator {
     </body>
     
     </html>`
-        this.$main = cheerio.load(this.mainHtml)
-        this.msToHMS = ms => {
-            let seconds = ms / 1000, // 1- Convert to seconds
-                hours = Math.floor(seconds / 3600) // 2- Extract hours: 3,600 seconds in 1 hour
-            seconds = seconds % 3600 // seconds remaining after extracting hours
-            let minutes = Math.floor(seconds / 60) // 3- Extract minutes: 60 seconds in 1 minute
-            seconds = Math.round(seconds % 60) // 4- Keep only seconds not extracted to minutes:
-            let myTime = ''
-            if (hours > 0) myTime = myTime + hours + 'h '
-            if (minutes > 0) myTime = myTime + minutes + 'm '
-            if (seconds > 0) myTime = myTime + seconds + 's'
-            return myTime
-        }
-        this.longBar = (character, length) => {
-            let myLength = Math.round(length),
-                mybar = ''
-            for (let i = 0; i < myLength; i++) mybar = mybar + character
-            return mybar
-        }
+
+    $main = cheerio.load(this.mainHtml)
+
+    msToHMS = (ms: number) => {
+        let seconds = ms / 1000 // 1- Convert to seconds
+        const hours = Math.floor(seconds / 3600) // 2- Extract hours: 3,600 seconds in 1 hour
+
+        seconds = seconds % 3600 // seconds remaining after extracting hours
+
+        const minutes = Math.floor(seconds / 60) // 3- Extract minutes: 60 seconds in 1 minute
+
+        seconds = Math.round(seconds % 60)// 4- Keep only seconds not extracted to minutes:
+
+        let myTime = ""
+        if (hours > 0) myTime = `${myTime + hours }h `
+        if (minutes > 0) myTime = `${myTime + minutes }m `
+        if (seconds > 0) myTime = `${myTime + seconds }s`
+        return myTime
+    }
+    longBar = (character: string, length: number) => {
+        const myLength = Math.round(length); let mybar = ""
+        for (let i = 0; i < myLength; i++) mybar = mybar + character
+        return mybar
     }
 }
-let generator = new EmailGenerator(),
-    executionSummary,
-    abandonedText
+
+const generator = new EmailGenerator(); let executionSummary; let abandonedText
+
 try {
     if (fs.existsSync(path.resolve('build-js/abandon.log')))
-        abandonedText = fs.readFileSync(path.resolve('build-js/abandon.log')).toString()
+        {abandonedText = fs.readFileSync(path.resolve('build-js/abandon.log')).toString()}
     else
-        executionSummary = JSON.parse(
-            fs.readFileSync(path.resolve(__dirname, '../../../../allure-report/widgets/summary.json'), {
-                encoding: 'utf8',
-            }),
-        )
-} catch (e) {
+        {executionSummary = JSON.parse(fs.readFileSync(path.resolve('allure-report/widgets/summary.json'), { encoding: "utf8" }))}
+}
+catch (e) {
     console.log(e)
 }
+
 if (process.argv.length > 2) generator.$main('#appName').text(process.argv[2])
 if (process.argv.length > 3) generator.$main('#reportLink').attr('href', process.argv[3])
+
 if (!!abandonedText) {
     generator.$main('#issue').text(abandonedText)
     generator.$main('#complete').remove()
-} else if (!!executionSummary && !!executionSummary.statistic) {
-    let passedTests = executionSummary.statistic.passed,
-        failedTests = executionSummary.statistic.failed,
-        totalTests = executionSummary.statistic.total,
-        skippedTests = executionSummary.statistic.skipped,
-        passedPerCent = !!totalTests ? (passedTests / totalTests) * 100 : 0,
-        failedPercent = !!totalTests ? (failedTests / totalTests) * 100 : 0,
-        skippedPercent = !!totalTests ? (skippedTests / totalTests) * 100 : 0,
-        otherPercent = !!totalTests ? ((totalTests - (passedTests + failedTests + skippedTests)) / totalTests) * 100 : 0
-    //Updating summary values
-    generator.$main('#dur').text(generator.msToHMS(executionSummary.time.duration)) //updating Duration of execution;
-    generator.$main('#tcc').text(totalTests) //updating total test case count;
-    generator.$main('#fc').text(failedTests) //updating failed test case count;
-    generator.$main('#sc').text(skippedTests) //updating skipped test case count;
-    generator.$main('#passedPercent').text(passedPerCent.toFixed(2)) //updating passed percent;
-    //updating summary graph
+}
+else if (!!executionSummary && !!executionSummary.statistic) {
+    const passedTests = executionSummary.statistic.passed
+        const failedTests = executionSummary.statistic.failed
+        const totalTests = executionSummary.statistic.total
+        const skippedTests = executionSummary.statistic.skipped
+        const brokenTests = executionSummary.statistic.broken
+        const actualFailCount= failedTests + brokenTests
+        const passedPerCent = !!totalTests ? (passedTests / totalTests * 100) : 0
+        const failedPercent = !!totalTests ? (actualFailCount / totalTests * 100) : 0
+        const skippedPercent = !!totalTests ? (skippedTests / totalTests * 100) : 0
+        const otherPercent = !!totalTests ? ((totalTests - (passedTests + skippedTests+actualFailCount)) / totalTests * 100) : 0
+    // Updating summary values
+    generator.$main('#dur').text(generator.msToHMS(executionSummary.time.duration))// updating Duration of execution;
+    generator.$main('#tcc').text(totalTests)// updating total test case count;
+    generator.$main('#fc').text(actualFailCount)// updating failed test case count;
+    generator.$main('#sc').text(skippedTests)// updating skipped test case count;
+    generator.$main('#passedPercent').text(passedPerCent.toFixed(2))// updating passed percent;
+
+    // updating summary graph
     generator.$main('#passGrph').text(generator.longBar('\\', passedPerCent))
     generator.$main('#failGrph').text(generator.longBar('\\', failedPercent))
     generator.$main('#skipGrph').text(generator.longBar('\\', skippedPercent))
     generator.$main('#otherGrph').text(generator.longBar('\\', otherPercent))
+
     generator.$main('#abandon').remove()
-} else {
+}
+else {
     generator.$main('#testDetails').remove()
 }
-let outputLoc = '../../../../emailReport.html'
+
+const outputLoc = "emailReport.html"
+
 if (fs.existsSync(outputLoc)) fs.unlinkSync(outputLoc)
+
 fs.writeFileSync(outputLoc, generator.$main.html(), 'utf8')
-//# sourceMappingURL=emailGenerator.js.map
