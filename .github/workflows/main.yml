@@ -1,8 +1,8 @@
 name: Playwright Tests
 
 on:
-  schedule:
-    - cron: '0 3-12 * * *' # Runs every hour from 9 AM to 6 PM IST (UTC+5:30)
+  # schedule:
+    # - cron: '0 3-12 * * *' # Runs every hour from 9 AM to 6 PM IST (UTC+5:30)
   push:
     branches:
       - main
