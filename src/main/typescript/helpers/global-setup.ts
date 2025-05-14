@@ -6,7 +6,7 @@ async function globalSetup(_config: FullConfig) {
     if (process.env.environmentToRun) {
         dotenv.config({
             path: `./src/main/resources/env/.env.${process.env.environmentToRun}`,
-            override: true,
+            override: false,
         })
     }
 

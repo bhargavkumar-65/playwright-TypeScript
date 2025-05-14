@@ -1,13 +1,16 @@
 /* eslint-disable quote-props */
 import { request } from '@playwright/test'
 import { FullConfig, Reporter, Suite, TestCase, TestError, TestResult, TestStatus, TestStep } from '@playwright/test/reporter'
+const envConfig = require('../../resources/env/azDevOps.json')
 
-import ENV from '../../resources/env/env'
 import log from './log'
-
-
 export default class CustomReporterConfig implements Reporter {
-
+readonly ENV = envConfig['AzureDevOps']
+  private readonly AZ_DEVOPS_USERNAME = this.ENV.AZ_DEVOPS_USERNAME
+  private readonly AZ_DEVOPS_PAT_TOKEN = this.ENV.AZ_DEVOPS_PAT_TOKEN
+  private readonly AZ_DEVOPS_BASE_URL= this.ENV.AZ_DEVOPS_BASE_URL
+  private readonly AZ_DEVOPS_PROJECT= this.ENV.AZ_DEVOPS_PROJECT
+  UpdateTestExecutionStatus:Boolean = false
     async onTestBegin(test: TestCase): Promise<void> {
         log.info(`-------------------------Test ${test.title} started---------------------`)
     }
@@ -39,9 +42,11 @@ export default class CustomReporterConfig implements Reporter {
         // Iterate over each testCaseID extracted from test title
         for (const testCaseID of TestCases) {
             log.info(`Processing test case ID: ${testCaseID}`)
-            log.info(`Fetching test plans and suites for case ID ${testCaseID} in Azure DevOps`)
-
+            if(this.UpdateTestExecutionStatus) {
+                log.info(`Fetching test plans and suites for case ID ${testCaseID} in Azure DevOps`)
+                log.info(`Updating test point outcome to "${outcome}" for test case ID ${testCaseID} in Azure DevOps`)
              await this.getTestPlanSuites(testCaseID,outcome)
+            }
         }
 
         log.info('----------------------------------------------------------------------------')
@@ -66,12 +71,14 @@ export default class CustomReporterConfig implements Reporter {
     }
 
   async getTestPlanSuites(testCaseID: number, outcome: string): Promise<void> {
-  const username = ENV.USERNAME
-  const password = ENV.AZ_DEVOPS_PAT_TOKEN
+  log.info(`username: ${this.AZ_DEVOPS_USERNAME}`)
+  log.info(`pat token: ${this.AZ_DEVOPS_PAT_TOKEN}`)
+  log.info(`base url: ${this.AZ_DEVOPS_BASE_URL}`)
+  log.info(`project: ${this.AZ_DEVOPS_PROJECT}`)
   const apiContext = await request.newContext({
-    baseURL: ENV.BASE_URL,
+    baseURL: this.AZ_DEVOPS_BASE_URL,
     extraHTTPHeaders: {
-      'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+      'Authorization': `Basic ${Buffer.from(`${this.AZ_DEVOPS_USERNAME}:${this.AZ_DEVOPS_PAT_TOKEN}`).toString('base64')}`,
       'Content-Type': 'application/json',
     },
   })
@@ -100,18 +107,16 @@ export default class CustomReporterConfig implements Reporter {
 }
 
     async getTestPoint(testCaseID: number, TestplanID: number, TestSuiteID: number, outcome: string): Promise<void> {
-      const username = ENV.AZ_DEVOPS_USERNAME
-      const password = ENV.AZ_DEVOPS_PAT_TOKEN
       
         const apiContext = await request.newContext({
-          baseURL: ENV.BASE_URL,
+          baseURL: this.AZ_DEVOPS_BASE_URL,
           extraHTTPHeaders: {
-            'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+            'Authorization': `Basic ${Buffer.from(`${this.AZ_DEVOPS_USERNAME}:${this.AZ_DEVOPS_PAT_TOKEN}`).toString('base64')}`,
             'Content-Type': 'application/json',
           },
         })
       
-        const endpoint = `/${ENV.AZ_DEVOPS_PROJECT}/_apis/testplan/Plans/${TestplanID}/Suites/${TestSuiteID}/TestPoint?api-version=6.0-preview.2&testCaseId=${testCaseID}`
+        const endpoint = `/${this.AZ_DEVOPS_PROJECT}/_apis/testplan/Plans/${TestplanID}/Suites/${TestSuiteID}/TestPoint?api-version=6.0-preview.2&testCaseId=${testCaseID}`
         const response = await apiContext.get(endpoint)
         
         if (response.ok()) {
@@ -132,20 +137,17 @@ export default class CustomReporterConfig implements Reporter {
           return null
         
     }
-   
-    async updateTestPointOutcome(testPlanID: number, testSuiteID: number, testPointID: number, outcome: string): Promise<void> {
-      const username = ENV.AZ_DEVOPS_USERNAME
-      const password = ENV.AZ_DEVOPS_PAT_TOKEN
 
+    async updateTestPointOutcome(testPlanID: number, testSuiteID: number, testPointID: number, outcome: string): Promise<void> {
         const apiContext = await request.newContext({
-          baseURL: ENV.AZ_DEVOPS_BASE_URL,
+          baseURL: this.AZ_DEVOPS_BASE_URL,
           extraHTTPHeaders: {
-            'Authorization': `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`,
+            'Authorization': `Basic ${Buffer.from(`${this.AZ_DEVOPS_USERNAME}:${this.AZ_DEVOPS_PAT_TOKEN}`).toString('base64')}`,
             'Content-Type': 'application/json',
           },
         })
       
-        const endpoint = `/${ENV.AZ_DEVOPS_PROJECT}/_apis/testplan/Plans/${testPlanID}/Suites/${testSuiteID}/TestPoint?api-version=7.1-preview.2`
+        const endpoint = `/${this.AZ_DEVOPS_PROJECT}/_apis/testplan/Plans/${testPlanID}/Suites/${testSuiteID}/TestPoint?api-version=7.1-preview.2`
       
         const body = [
           {

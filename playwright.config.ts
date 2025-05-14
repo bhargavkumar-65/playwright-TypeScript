@@ -11,7 +11,7 @@ import type { devices, PlaywrightTestConfig } from '@playwright/test'
 const config: PlaywrightTestConfig = {
     globalSetup: require.resolve('./src/main/typescript/helpers/global-setup.ts'),
     testDir: './src/test/typescript',
-    testMatch: '/Naukari*.ts',
+    testMatch: /.*\.spec\.ts/,
     /* Maximum time one test can run for. */
     timeout: 1200000,
     expect: {

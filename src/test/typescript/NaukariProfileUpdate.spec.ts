@@ -6,7 +6,7 @@ test.beforeEach(async ({ page }) => {
 })
 
 test.describe(`NaukariProfileUpdate :`, () => {
-    test('Naukari', async ({ naukariPageActions }, testInfo) => {
+    test('[306544] Naukari', async ({ naukariPageActions }, testInfo) => {
         await naukariPageActions.loginintoNaukari()
     })
 

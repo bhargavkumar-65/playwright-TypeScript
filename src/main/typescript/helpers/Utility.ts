@@ -1,9 +1,10 @@
 import test, { APIRequestContext, expect, Locator, Page } from '@playwright/test'
-import * as os from 'os';
-import * as path from 'path';
+import { time } from 'console'
+import * as os from 'os'
+import * as path from 'path'
+
 import { step } from './Decorators'
 import log from './log'
-import { time } from 'console';
 
 const fs = require('fs')
 let currentPage: Page | null
@@ -15,6 +16,11 @@ export class Utility {
         this.page = page
     }
 
+    private async resolvePageContext(args: { window?: Page; frame?: string }) {
+    if (args.window) return args.window
+    if (args.frame) return await this.getFrame({ selector: args.frame })
+    return this.page
+}
     /**
      * Click On An Element With text
      * @param selector Pass the selector of element for which Click action has to be performed
@@ -28,10 +34,11 @@ export class Utility {
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(`text=${args.text}`)
+                    .filter({visible:true})
                     .nth(args.occurance ? args.occurance : 1)
                     .click()
             } else {
-                await pg.locator(`text=${args.text}`).click()
+                await pg.locator(`text=${args.text}`).filter({visible:true}).click()
             }
         } catch (ex) {
             log.error(`Clicking on element with text ${args.text} failed with exception ${ex}`)
@@ -44,28 +51,21 @@ export class Utility {
      **/
     @step('Click on element')
     async click(args: { selector: string; frame?: string; occurance?: number; timeout?: number; window?: Page }) {
-        const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        const pg = await this.resolvePageContext(args)
         log.info(`Clicking on element with selector ${args.selector}`)
         try {
             const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
-            if (noOfElementsFound > 1) {
-                await pg
-                    .locator(args.selector)
-                    .nth(args.occurance ? args.occurance : 1)
-                    .waitFor({ timeout: args.timeout ? args.timeout : 30000 })
-
-                await pg
-                    .locator(args.selector)
-                    .nth(args.occurance ? args.occurance : 1)
-                    .click()
-            } else {
-                await pg.locator(args.selector).filter({visible:true}).waitFor({ timeout: args.timeout ? args.timeout : 30000 })
-                await pg.locator(args.selector).filter({visible:true}).click()
-            }
-        } catch (ex) {
+            log.info(`Found ${noOfElementsFound} element(s) with selector ${args.selector}`)
+                await pg.locator(args.selector).filter({visible:true}).nth(args.occurance ? args.occurance : 0).waitFor({ timeout: args.timeout ? args.timeout : 30000 })
+                await pg.locator(args.selector).filter({visible:true}).nth(args.occurance ? args.occurance : 0).click()
+                await this.waitUntilPageIsLoaded()    
+        }
+        
+        catch (ex) {
             log.error(`Clicking on element ${args.selector} failed with exception ${ex}`)
             throw new Error(`Clicking on element ${args.selector} failed with exception ${ex}`)
         }
+
     }
 
     /**
@@ -77,9 +77,9 @@ export class Utility {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Clicking on all elements with selector ${args.selector}`)
         try {
-            const noOfElementsFound = await pg.locator(args.selector).count()
+            const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
             for (let i = 0; i < noOfElementsFound; i++) {
-                await pg.locator(args.selector).nth(i).click()
+                await pg.locator(args.selector).filter({visible:true}).nth(i).click()
             }
         } catch (ex) {
             log.error(`Clicking on element ${args.selector} failed with exception ${ex}`)
@@ -91,23 +91,25 @@ export class Utility {
      * @param selector Pass the selector of element for which Click action has to be performed
      **/
     @step('Checkbox click on element')
-    async check(args: { selector: string; frame?: string; occurance?: number }) {
-        const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+    async check(args: { selector: string; frame?: string; occurance?: number;window?: Page }) {
+        const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Clicking on element with selector ${args.selector}`)
         try {
-            const noOfElementsFound = await pg.locator(args.selector).count()
+            const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(args.selector)
+                    .filter({visible:true})
                     .nth(args.occurance ? args.occurance : 1)
                     .waitFor()
                 await pg
                     .locator(args.selector)
+                    .filter({visible:true})
                     .nth(args.occurance ? args.occurance : 1)
                     .click()
             } else {
-                await pg.locator(args.selector).waitFor()
-                await pg.locator(args.selector).check()
+                await pg.locator(args.selector).filter({visible:true}).waitFor()
+                await pg.locator(args.selector).filter({visible:true}).check({force: true})
             }
         } catch (ex) {
             log.error(`Clicking on element ${args.selector} failed with exception ${ex}`)
@@ -130,10 +132,13 @@ export class Utility {
     @step('Get Attribute Value')
     async getAttributeValue(args: { selector: string; frame?: string; occurance?: number; attributeName: string }) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        const elCnt = await pg.locator(args.selector).count()
+        const elCnt = await pg.locator(args.selector).filter({visible:true}).count()
         log.info(`No of elements found with locator ${args.selector} are ${elCnt}`)
-        const element = elCnt > 1 ? await pg.locator(args.selector).nth(args.occurance ? args.occurance : 1) : await pg.locator(args.selector)
-        return await element.getAttribute(args.attributeName)
+        const element = elCnt > 1 ? pg.locator(args.selector).filter({visible:true}).nth(args.occurance ? args.occurance : 1) : pg.locator(args.selector).filter({visible:true})
+        const attributeValue= await element.getAttribute(args.attributeName)
+        log.info(`Attribute Value of ${args.attributeName} is ${attributeValue}`)
+        return attributeValue
+
     }
 
     /**
@@ -145,8 +150,10 @@ export class Utility {
             log.info('Waiting for Page Load to complete')
             await Promise.all(
                 [
+                    this.page.waitForSelector('#loader',{state:'hidden',timeout: 60000}),
+                    this.page.waitForLoadState('load'),
                     this.page.waitForLoadState('domcontentloaded'), 
-                    this.page.waitForLoadState('networkidle', { timeout: 10000 })
+                    this.page.waitForLoadState('networkidle', { timeout: 60000 })
                 ])
         } catch {
             log.error('Timed out waiting for load state')
@@ -160,10 +167,18 @@ export class Utility {
      * */
         @step('Type Text')
         async typeText(args: { selector: string; text: string; frame?: string; window?: Page; occurance?: number }) {
-            const pg:Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+            // const pg:Page = iargs.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+            let pg: Page = this.page
+            if(args.window) {
+                pg = args.window
+            }
+            else if(args.frame) {
+                pg = await this.getFrame({ selector: args.frame })
+            } 
+
             try {
                 log.info(`Trying to get the selector ${args.selector} `)
-                const noOfElementsFound = await pg.locator(args.selector).count()
+                const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
                 if (noOfElementsFound > 1) {
                 log.info(`No.Of Elements Found: ${noOfElementsFound} for Element: ${args.selector}`)
                     await pg
@@ -171,7 +186,7 @@ export class Utility {
                         .nth(args.occurance ? args.occurance : 0)
                         .fill(args.text)
                 } else {
-                    await pg.locator(args.selector).fill(args.text)
+                    await pg.locator(args.selector).filter({visible:true}).fill(args.text)
                 }
                 log.info(`Sent Text ${args.text} to element ${args.selector}`)
             } catch (ex) {
@@ -200,23 +215,25 @@ export class Utility {
     /**
      * Wait Until The Element With Specified Selector Is Visible. In Case Of Multiple
      * Elements, It Waits For The Specified Occurance
+     * Default timeOut is 30 seconds
      * @param selector Selector of the element
      * @param multiple Whether Selector returns multiple elements
      * @param occurance which occurance to wait for if there are multiple occurances
      */
     @step('Wait For Locator')
-    async waitForLocator(args: { selector: string; occurance?: number; frame?: string;timedOut?:number }) {
-        const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+    async waitForLocator(args: { selector: string; occurance?: number; frame?: string;timeOut?:number;window?:Page }) {
+        const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        // const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         try{
         const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
         if (noOfElementsFound>1) {
             log.info(`Element with selector ${args.selector} found with multiple: ${noOfElementsFound}  !!`)
             await pg
                 .locator(args.selector)
-                .nth(args.occurance ??  0)
-                .waitFor({ timeout: args.timedOut?? 30000, state: 'visible' })
+                .nth(args.occurance ?? 0)
+                .waitFor({ timeout: args.timeOut?? 30000, state: 'visible' })
         } else {
-            await await pg.locator(args.selector).filter({visible:true}).nth(0).waitFor({ state: 'visible',timeout: args.timedOut?? 30000 })
+             await pg.locator(args.selector).filter({visible:true}).nth(0).waitFor({ state: 'visible',timeout: args.timeOut?? 30000 })
             log.info(`Element with selector ${args.selector} found !!`)
         }
     }
@@ -233,14 +250,14 @@ export class Utility {
     @step()
     async scrollIntoView(args: { selector: string; frame?: string }) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        await pg.locator(args.selector).scrollIntoViewIfNeeded()
+        await pg.locator(args.selector).filter({visible:true}).scrollIntoViewIfNeeded()
         log.info(`scrolled until the element with selector ${args.selector} is in view`)
     }
 
     @step('focus on element')
     async focus(args: { selector: string; frame?: string }) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        await pg.locator(args.selector).focus()
+        await pg.locator(args.selector).filter({visible:true}).focus()
         log.info(`Focussed element ${args.selector}`)
     }
 
@@ -251,7 +268,7 @@ export class Utility {
     @step('Get Count Of Elements')
     async getCountOfElements(args: { selector: string; frame?: string }) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        const count = await pg.locator(args.selector).count()
+        const count = await pg.locator(args.selector).filter({visible:true}).count()
         log.info(`No of Elements found with selector ${args.selector} is ${count}`)
         return count
     }
@@ -266,7 +283,7 @@ export class Utility {
     async getDropDownItemWithText(args: { text: string; frame?: string }) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Getting the dropdown Item with text ${args.text}`)
-        return await pg.locator(`li[role="option"]:has-text("${args.text}")`)
+        return pg.locator(`li[role="option"]:has-text("${args.text}")`)
     }
 
     /**
@@ -276,10 +293,11 @@ export class Utility {
      * @param frame frame selector if any*
      */
     @step('Select Dropdown Option')
-    async selectDropDownOption(args: { text: string; frame?: string }) {
+    async selectDropDownOption(args: { text: string; frame?: string;window?: Page }) {
+        const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         // get dropdown option
-        await this.page.getByRole('option', { name: args.text }).click()
-        //await (await this.getDropDownItemWithText({ text: args.text, frame: args.frame })).click()
+        await pg.getByRole('option', { name: args.text,exact:true }).click()
+        // await (await this.getDropDownItemWithText({ text: args.text, frame: args.frame })).click()
         log.info(`clicked on dropdown Item with text ${args.text}`)
     }
     /**
@@ -288,22 +306,25 @@ export class Utility {
      * @param index index of the element to be selected
      * @param frame frame selector if any
      * @param selector Must be //select tag followed by <options> tags *
+     * @UseWhen DOM is like <option value="Text">Text</option> And When <option value=1>Text</option>
      */
     @step('Select Dropdown Value')
     async selectDropDownValue(args: { selector: string; text?: string; frame?: string; index?: number; window?: Page }) {
         const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
 
         if (args.index) {
-            await pg.locator(args.selector).selectOption({ index: args.index })
+            await pg.locator(args.selector).filter({visible:true}).selectOption({ index: args.index })
             log.info(`clicked on dropdown Item with Index ${args.index}`)
         }
         if (args.text) {
             log.info(`Trying to select dropdown Item ${args.selector} with text ${args.text}`)
-            await pg.locator(args.selector).selectOption(args.text)
+            try{await pg.locator(args.selector).filter({visible:true}).selectOption(args.text)}
+            catch(ex){await pg.locator(args.selector).filter({visible:true}).selectOption({label:args.text})}
             log.info(`clicked on dropdown Item with text ${args.text}`)
         }
         log.info(`Dropdown Value selection is performed on element with selector ${args.selector}`)
     }
+
     /**
      * Waiting for new window
      * @param clickEvent
@@ -337,25 +358,25 @@ export class Utility {
     @step('Get Element')
     async getElement(args: { selector: string; frame?: string; occurance?: number }) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        const elCnt = await pg.locator(args.selector).count()
+        const elCnt = await pg.locator(args.selector).filter({visible:true}).count()
         log.info(`No of elements found with locator ${args.selector} are ${elCnt}`)
-        return elCnt > 1 ? await pg.locator(args.selector).nth(args.occurance ? args.occurance : 0) : await pg.locator(args.selector)
+        return elCnt > 1 ? pg.locator(args.selector).filter({visible:true}).nth(args.occurance ? args.occurance : 0) : pg.locator(args.selector).filter({visible:true})
     }
     @step('Get First Element')
     async getElementFirst(args: { selector: string; frame?: string }) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        return await pg.locator(args.selector).first()
+        return pg.locator(args.selector).filter({visible:true}).first()
     }
 
     @step('Get Second Element')
     async getElementSecond(args: { selector: string; frame?: string }) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        return await pg.locator(args.selector).nth(1)
+        return pg.locator(args.selector).filter({visible:true}).nth(1)
     }
     @step('Get Last Element')
     async getElementLast(args: { selector: string; frame?: string }) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        return await pg.locator(args.selector).last()
+        return pg.locator(args.selector).filter({visible:true}).last()
     }
 
     /**
@@ -369,17 +390,17 @@ export class Utility {
     async downloadFile(args: { selector: string; frame?: string}) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         const downloadPromise = this.page.waitForEvent('download')
-        await pg.locator(args.selector).click()
+        await pg.locator(args.selector).filter({visible:true}).click()
         const download = await downloadPromise
-        const homeDir = os.homedir();
-        const downloadsPath = path.join(homeDir, 'Downloads', download.suggestedFilename());
-        await download.saveAs(downloadsPath);
-        await test.info().attachments.push({
+        const homeDir = os.homedir()
+        const downloadsPath = path.join(homeDir, 'Downloads', download.suggestedFilename())
+        await download.saveAs(downloadsPath)
+        test.info().attachments.push({
             name: download.suggestedFilename(),
             path: downloadsPath,
-            contentType: 'application/octet-stream'
-        });
-        return await downloadsPath
+            contentType: 'application/octet-stream',
+        })
+        return downloadsPath
     }
 
     /**
@@ -393,7 +414,7 @@ export class Utility {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         const elCnt = await pg.locator(`text=${args.text}`).count()
         log.info(`No of elements found with text ${args.text} are ${elCnt}`)
-        return elCnt > 1 ? await pg.locator(`text=${args.text}`).nth(args.occurance ? args.occurance : 1) : await pg.locator(`text=${args.text}`)
+        return elCnt > 1 ? pg.locator(`text=${args.text}`).nth(args.occurance ? args.occurance : 1) : pg.locator(`text=${args.text}`)
     }
 
     /**
@@ -403,9 +424,11 @@ export class Utility {
      * @returns returns text of all elements including hidden elements and returns array of strings
      */
     @step('Get Element Text')
-    async getText(args: { selector: string; frame?: string }): Promise<string[]> {
+    async getAllTextContents(args: { selector: string; frame?: string }): Promise<string[]> {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        return await pg.locator(args.selector).allTextContents()
+        const text = await pg.locator(args.selector).filter({visible:true}).allTextContents()
+        log.info(`extracted text from element with selector ${args.selector} is ${text}`)
+        return text
     }
 
     /**
@@ -417,7 +440,7 @@ export class Utility {
     async checkIfElementExists(args: { selector: string; frame?: string; window?: Page }) {
         log.info(`checking if element ${args.selector} exists or not`)
         const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        const noOfElementsFound = await pg.locator(args.selector).count()
+        const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
         log.info(`element with selector ${args.selector} ${pg && noOfElementsFound > 0 ? 'exists' : 'does not exist'}`)
         const isElementVisible = await pg.locator(args.selector).filter({visible:true}).nth(0).isVisible()
         log.info(`element with selector ${args.selector} is ${isElementVisible ? 'visible' : 'not visible'}`)
@@ -433,9 +456,9 @@ export class Utility {
     async checkIfElementNotExists(args: { selector: string; frame?: string; window?: Page }) {
         log.info(`checking if element ${args.selector} exists or Not`)
         const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        const noOfElementsFound = await pg.locator(args.selector).count()
+        const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
         log.info(`element with selector ${args.selector} ${pg && noOfElementsFound > 0 ? 'exists' : 'does not exist'}`)
-        const isElementVisible = await pg.locator(args.selector).isVisible()
+        const isElementVisible = await pg.locator(args.selector).filter({visible:true}).isVisible()
         log.info(`element with selector ${args.selector} is ${isElementVisible ? 'visible' : 'not visible'}`)
         return pg ? noOfElementsFound === 0 && !isElementVisible : false
     }
@@ -448,7 +471,7 @@ export class Utility {
     @step('Expand Dropdown Item')
     async expandDropDownItem(args: { selector: string; frame?: string }) {
         const dropdownElement = await this.getElement(args)
-        dropdownElement.locator('[arialabel="downArrow"]').click()
+        await dropdownElement.locator('[arialabel="downArrow"]').filter({visible:true}).click()
         log.info(`Expanded Dropdown Item with selector ${args.selector}`)
     }
 
@@ -484,8 +507,9 @@ export class Utility {
      * @param args Press Keryboard Type
      */
     @step('Press Keyboard Type')
-    async keyboardType(args: { selector?: string; text: string; frame?: string; delayinMilliSec?: number }) {
-        const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+    async keyboardType(args: { selector?: string; text: string; frame?: string; delayinMilliSec?: number; window?: Page }) {
+        const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        log.info(`Typing on element with selector ${args.selector}`)
         if (args.selector) {
             await this.click({ selector: args.selector })
         }
@@ -502,14 +526,15 @@ export class Utility {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Clicking on element with selector ${args.selector}`)
         try {
-            const noOfElementsFound = await pg.locator(args.selector).count()
+            const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(args.selector)
+                    .filter({visible:true})
                     .nth(args.occurance ? args.occurance : 1)
                     .dblclick()
             } else {
-                await pg.locator(args.selector).dblclick()
+                await pg.locator(args.selector).filter({visible:true}).dblclick()
             }
         } catch (ex) {
             log.error(`Clicking on element ${args.selector} failed with exception ${ex}`)
@@ -556,20 +581,22 @@ export class Utility {
         const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`clearing on element with selector ${args.selector}`)
         try {
-            const noOfElementsFound = await pg.locator(args.selector).count()
+            const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(args.selector)
+                    .filter({visible:true})
                     .nth(args.occurance ? args.occurance : 1)
                     .waitFor({ timeout: args.timeout ? args.timeout : 30000 })
 
                 await pg
                     .locator(args.selector)
+                    .filter({visible:true})
                     .nth(args.occurance ? args.occurance : 1)
                     .clear()
             } else {
-                await pg.locator(args.selector).waitFor()
-                await pg.locator(args.selector).clear()
+                await pg.locator(args.selector).filter({visible:true}).waitFor()
+                await pg.locator(args.selector).filter({visible:true}).clear()
             }
         } catch (ex) {
             log.error(`Clearing on element ${args.selector} failed with exception ${ex}`)
@@ -588,20 +615,22 @@ export class Utility {
         const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`Duble Clicking on element with selector ${args.selector}`)
         try {
-            const noOfElementsFound = await pg.locator(args.selector).count()
+            const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(args.selector)
+                    .filter({visible:true})
                     .nth(args.occurance ? args.occurance : 1)
                     .waitFor({ timeout: args.timeout ? args.timeout : 30000 })
 
                 await pg
                     .locator(args.selector)
+                    .filter({visible:true})
                     .nth(args.occurance ? args.occurance : 1)
                     .dblclick()
             } else {
-                await pg.locator(args.selector).waitFor()
-                await pg.locator(args.selector).dblclick()
+                await pg.locator(args.selector).filter({visible:true}).waitFor()
+                await pg.locator(args.selector).filter({visible:true}).dblclick()
             }
         } catch (ex) {
             log.error(`Duble Clicking on element ${args.selector} failed with exception ${ex}`)
@@ -612,8 +641,8 @@ export class Utility {
     async uploadImage(args: { selector: string; frame?: string; imagePath: string; imageName: string }) {
         const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         await pg
-            .frameLocator(args.frame)
             .locator(args.selector)
+            .filter({visible:true})
             .setInputFiles({
                 name: args.imageName,
                 mimeType: 'image/png',
@@ -631,24 +660,26 @@ export class Utility {
      */
 
     @step()
-    async uploadFile(args: { filePath: string; selector: string; frame?: string; occurance?: number; timeout?: number }) {
-        const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+    async uploadFile(args: { filePath: string; selector: string; frame?: string; occurance?: number; timeout?: number; window?: Page }) {
+        const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         log.info(`UploadFile on element with selector ${args.selector}`)
         try {
-            const noOfElementsFound = await pg.locator(args.selector).count()
+            const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
             if (noOfElementsFound > 1) {
                 await pg
                     .locator(args.selector)
+                    .filter({visible:true})
                     .nth(args.occurance ? args.occurance : 1)
                     .waitFor({ timeout: args.timeout ? args.timeout : 30000 })
 
                 await pg
                     .locator(args.selector)
+                    .filter({visible:true})
                     .nth(args.occurance ? args.occurance : 1)
                     .setInputFiles(args.filePath)
             } else {
-                await pg.locator(args.selector).waitFor()
-                await pg.locator(args.selector).setInputFiles(args.filePath)
+                await pg.locator(args.selector).filter({visible:true}).waitFor()
+                await pg.locator(args.selector).filter({visible:true}).setInputFiles(args.filePath)
             }
         } catch (ex) {
             log.error(`uploadFile ${args.selector} failed with exception ${ex}`)
@@ -738,7 +769,7 @@ export class Utility {
             const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
             log.info(`Hovering on element with selector ${args.selector}`)
             try {
-                const noOfElementsFound = await pg.locator(args.selector).count()
+                const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
                 log.info(`Found ${noOfElementsFound} element(s) with selector ${args.selector}`)
                 if (noOfElementsFound > 1) {
                     await pg
@@ -751,8 +782,8 @@ export class Utility {
                         .nth(args.occurance ? args.occurance : 0)
                         .hover()
                 } else {
-                    await pg.locator(args.selector).waitFor()
-                    await pg.locator(args.selector).hover()
+                    await pg.locator(args.selector).filter({visible:true}).waitFor()
+                    await pg.locator(args.selector).filter({visible:true}).hover()
                 }
             } catch (ex) {
                 log.error(`Hovering on element ${args.selector} failed with exception ${ex}`)
@@ -773,10 +804,10 @@ export class Utility {
         async dragAndDrop(args: { sourceSelector: string; targetSelector: string; frame?: string; occurance?: number; timeout?: number; window?: Page; force?: boolean }) {
             const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
             log.info(`Converting the elements with selector ${args.sourceSelector} & ${args.targetSelector} to draggable elements`)
-            let sourceElement = await pg.locator(args.sourceSelector).nth(args.occurance ? args.occurance : 0).toString()
-                .replace('Locator@', '').replace(/\\/g, '').replace(`locator('`, '').replace(`').first()`, ' >> nth=0');
-            let targetElement = await pg.locator(args.targetSelector).nth(args.occurance ? args.occurance : 0).toString()
-                .replace('Locator@', '').replace(/\\/g, '').replace(`locator('`, '').replace(`').first()`, ' >> nth=0');
+            const sourceElement = pg.locator(args.sourceSelector).nth(args.occurance ? args.occurance : 0).toString()
+                .replace('Locator@', '').replace(/\\/g, '').replace(`locator('`, '').replace(`').first()`, ' >> nth=0')
+            const targetElement = pg.locator(args.targetSelector).nth(args.occurance ? args.occurance : 0).toString()
+                .replace('Locator@', '').replace(/\\/g, '').replace(`locator('`, '').replace(`').first()`, ' >> nth=0')
             try {
                 await pg.dragAndDrop(sourceElement, targetElement, { force: args.force ? args.force : false })
             } catch (ex) {
@@ -792,12 +823,16 @@ export class Utility {
      * @returns innerText of the element macthing the selector
      */
     @step('Get InnerText of Element')
-    async getInnerText(args: { selector: string; frame?: string; occurance?: number }) {
-        const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        const elCnt = await pg.locator(args.selector).count()
+    async getInnerText(args: { selector: string; frame?: string; occurance?: number;window?: Page }) {
+        // const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        const elCnt = await pg.locator(args.selector).filter({visible:true}).count()
         log.info(`No of elements found with locator ${args.selector} are ${elCnt}`)
-        const element = elCnt > 1 ? await pg.locator(args.selector).nth(args.occurance ? args.occurance : 0) : await pg.locator(args.selector)
-        return await element.innerText()
+        const element = elCnt > 1 ? pg.locator(args.selector).filter({visible:true}).nth(args.occurance ? args.occurance : 0) : pg.locator(args.selector).filter({visible:true})
+        const innterText= await element.filter({visible:true}).innerText()
+        log.info(`InnerText of element ${args.selector} is ${innterText}`)
+        return innterText
+
     }
 
     /**
@@ -808,9 +843,9 @@ export class Utility {
      */
     async getHtmlAttributeValue(args: { selector: string; frame?: string; occurance?: number; attributeName: string }) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        const elCnt = await pg.locator(args.selector).count()
+        const elCnt = await pg.locator(args.selector).filter({visible:true}).count()
         log.info(`No of elements found with locator ${args.selector} are ${elCnt}`)
-        const element = elCnt > 1 ? await pg.locator(args.selector).nth(args.occurance ? args.occurance : 0) : await pg.locator(args.selector)
+        const element = elCnt > 1 ? pg.locator(args.selector).filter({visible:true}).nth(args.occurance ? args.occurance : 0) : pg.locator(args.selector).filter({visible:true})
         switch (args.attributeName) {
             case "value":
                 return await element.evaluate(e => (e as HTMLInputElement).value)
@@ -834,7 +869,7 @@ export class Utility {
             .locator(args.selector)
             .nth(args.occurance ? args.occurance : 0)
             .evaluate((el, _cssProperty) => {
-                return window.getComputedStyle(el).getPropertyValue(_cssProperty);
+                return window.getComputedStyle(el).getPropertyValue(_cssProperty)
             }, args.cssProperty)
     }        
 
@@ -846,11 +881,11 @@ export class Utility {
      * @param occurance get the occurance of element when multiple elements are found
      * @param window window selector
      * */
-        async typeTextSequentially(args: { selector: string; text: string; frame?: string; window?: Page; occurance?: number; }) {
+        async typeTextSequentially(args: { selector: string; text: string; frame?: string; window?: Page; occurance?:number}) {
             const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
             try {
                 log.info(`Trying to get the selector ${args.selector} `)
-                const noOfElementsFound = await pg.locator(args.selector).count()
+                const noOfElementsFound = await pg.locator(args.selector).filter({visible:true}).count()
                 if (noOfElementsFound > 1) {
                     await pg
                         .locator(args.selector)
@@ -862,8 +897,8 @@ export class Utility {
                         .nth(args.occurance ? args.occurance : 0)
                         .pressSequentially(args.text)
                 } else {
-                    await pg.locator(args.selector).fill("")
-                    await pg.locator(args.selector).pressSequentially(args.text)
+                    await pg.locator(args.selector).filter({visible:true}).fill("")
+                    await pg.locator(args.selector).filter({visible:true}).pressSequentially(args.text)
                 }
                 log.info(`Sent Text ${args.text} to element ${args.selector}`)
             } catch (ex) {
@@ -872,13 +907,12 @@ export class Utility {
         }
         
     /**
-     * Returns a formatted date string in the format 'MM/DD/YYYY hh:mm:ss AM/PM'.
-     * If a number of days is provided, it adds that many days to the current date.
-     *
-     * @param day number of days to add to the current date
-     * @returns formatted date in the format '01/06/2025 12:00:00 AM'
+     * Returns a formatted date string based on the specified format.
+     * @param format - The desired date format ('MM/DD/YYYY hh:mm:ss AM/PM', 'MM/DD/YYYY', 'yyyy-mm-dd--hh-mm-ss').
+     * @param day - Number of days to add to the current date (optional).
+     * @returns Formatted date string.
      */
-    getFormattedDate(day?: number): string {
+    getFormattedDate(format: 'MM/DD/YYYY hh:mm:ss AM/PM' | 'MM/DD/YYYY' | 'YYYY_MM_DD_HH_MM_SS' | 'MM/DD/YYYY hh:mm AM/PM', day?: number): string {
         const today = new Date()
         const futureDate = new Date(today)
 
@@ -886,45 +920,45 @@ export class Utility {
             futureDate.setDate(today.getDate() + day)
         }
 
-        futureDate.setHours(0, 0, 0, 0)
-
-        const options: Intl.DateTimeFormatOptions = {
-            month: '2-digit',
-            day: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: true,
-        }
-
-        return futureDate.toLocaleString('en-US', options).replace(',', '')
-    }
-
-    /**
-     *
-     * @param day number of days to add to the current date
-     * @returns formatted date in the format 'yyyy-mm-dd--hh-mm-ss'
-     */
-
-    getDateInFormatYYY_MM_DD_HH_MM_SS(day?: number): string {
-        const pad = (num: number) => num.toString().padStart(2, '0')
-
-        const today = new Date()
-        const futureDate = new Date(today)
-
-        if (day !== undefined) {
-            futureDate.setDate(today.getDate() + day)
-        }
-
-        const year = futureDate.getFullYear()
-        const month = pad(futureDate.getMonth() + 1) // Months are zero-based
-        const dayOfMonth = pad(futureDate.getDate())
-        const hours = pad(futureDate.getHours())
-        const minutes = pad(futureDate.getMinutes())
-        const seconds = pad(futureDate.getSeconds())
-
-        return `${year}_${month}_${dayOfMonth}_${hours}_${minutes}_${seconds}`
+        if (format === 'MM/DD/YYYY hh:mm:ss AM/PM') {
+            futureDate.setHours(0, 0, 0, 0)
+            const options: Intl.DateTimeFormatOptions = {
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true,
+            }
+            return futureDate.toLocaleString('en-US', options).replace(',', '')
+        } else if (format === 'MM/DD/YYYY') {
+            futureDate.setHours(0, 0, 0, 0)
+            const options: Intl.DateTimeFormatOptions = {
+                month: '2-digit',
+                day: '2-digit',
+                year: 'numeric',
+            }
+            return futureDate.toLocaleString('en-US', options).replace(',', '')
+        } else if (format === 'YYYY_MM_DD_HH_MM_SS') {
+            const pad = (num: number) => num.toString().padStart(2, '0')
+            const year = futureDate.getFullYear()
+            const month = pad(futureDate.getMonth() + 1) // Months are zero-based
+            const dayOfMonth = pad(futureDate.getDate())
+            const hours = pad(futureDate.getHours())
+            const minutes = pad(futureDate.getMinutes())
+            const seconds = pad(futureDate.getSeconds())
+            return `${year}_${month}_${dayOfMonth}_${hours}_${minutes}_${seconds}`
+        } else if (format === 'MM/DD/YYYY hh:mm AM/PM') {
+            const pad = (num: number) => num.toString().padStart(2, '0')
+            const year = futureDate.getFullYear()
+            const month = pad(futureDate.getMonth() + 1) // Months are zero-based
+            const dayOfMonth = pad(futureDate.getDate())
+            const hours = pad(futureDate.getHours())
+            const minutes = pad(futureDate.getMinutes())
+            return `${year}_${month}_${dayOfMonth}_${hours}_${minutes}`
+        } 
+            throw new Error(`Unsupported date format: ${format}`)
     }
 
 
@@ -940,9 +974,9 @@ export class Utility {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         await this.waitUntilPageIsLoaded()
         const allHeadersXpath='//table[@role="grid"]//tr/th[@style="touch-action: none;"]'
-        let columnIndex:number|null = null;
+        let columnIndex:number|null = null
 
-        await this.waitForLocator({selector:allHeadersXpath,timedOut:60000})
+        await this.waitForLocator({selector:allHeadersXpath,timeOut:60000})
         
         try {
             // Get all header elements to find the index
@@ -953,7 +987,7 @@ export class Utility {
                 if (headerText && headerText.trim() === args.columnName.trim()) {
                     columnIndex = i
                     log.info(`ColumnName ${headerText} is at index ${columnIndex}`)
-                    break;
+                    break
                 }
             }
             if (columnIndex === null) {
@@ -975,41 +1009,338 @@ export class Utility {
     }
 
     /**
+     * Clicks on a specific cell in a Grid table based on row number and column Name.
+     * @param rowNumber  - Row number (starting from 1) of Grid to click,
+     * @param columnName - The column Name to click.
+     * @Optional frame   - The frame selector to use when searching for the element.
+     */
+        @step('Click Table Grid Cell by Row and Column Name')
+        async clickTableGridCellByRowAndColumnName(args: { rowNumber: number; columnName: string; isHyperLink?:Boolean;frame?: string;window?: Page;hyperlinkOccurance?:number }) {
+            log.info(`Clicking on Table Grid cell with Row Number: ${args.rowNumber} and Column Name: ${args.columnName}`)
+            const pg: Page = args.window? args.window: args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+            await this.waitUntilPageIsLoaded()
+            const allHeadersXpath = '//table[@role="grid"]//tr/th'
+            let columnIndex: number | null = null
+    
+            await this.waitForLocator({ selector: allHeadersXpath, timeOut: 60000 })
+    
+            try {
+                // Get all header elements to find the index
+                const allHeaderElements = await pg.locator(allHeadersXpath).filter({visible:true}).elementHandles()
+                for (let i = 0; i < allHeaderElements.length; i++) {
+                    const headerText = await pg.locator(allHeadersXpath).filter({visible:true}).nth(i).innerText()
+                    log.info(`Verifying Header Text: ${headerText}`)
+                    if (headerText && headerText.trim() === args.columnName.trim()) {
+                        columnIndex = i
+                        log.info(`ColumnName ${headerText} is at index ${columnIndex}`)
+                        break
+                    }
+                }
+                if (columnIndex === null) {
+                    log.error(`Column Name "${args.columnName}" not found in Table Grid.`)
+                    throw new Error(`Column Name "${args.columnName}" not found in Table Grid. for selector ${allHeadersXpath}`)
+                }
+                let cellSelector = args.isHyperLink? `//table/tbody/tr[${args.rowNumber}]/td[not(contains(@style, 'display:none'))][${columnIndex + 1}]/a` : `//table/tbody/tr[${args.rowNumber}]/td[not(contains(@style, 'display:none'))][${columnIndex + 1}]`
+                    cellSelector=args.hyperlinkOccurance? `//table/tbody/tr[${args.rowNumber}]/td[not(contains(@style, 'display:none'))][${columnIndex + 1}]/a[${args.hyperlinkOccurance}]` : cellSelector
+                log.info(`Clicking Table Grid cell with selector ${cellSelector}`)
+                await this.click({ selector: cellSelector })
+                log.info(`Clicked on Table Grid cell with selector ${cellSelector}`)
+            } catch (ex) {
+                log.error(`Failed to click Table Grid cell with exception ${ex}`)
+                throw new Error(`Failed to click Table Grid cell with exception ${ex}`)
+            }
+        }
+
+
+        /**
+     * Clicks on a specific row in a Grid table based on text in a given column.
+     * @param rowText  - Text to find in the specified column.
+     * @param columnName - The column Name to search for the text.
+     * @Optional frame   - The frame selector to use when searching for the element.
+     */
+    @step('Click Table Grid Row by Column Name and Text')
+    async clickTableGridRowByColumnNameAndText(args: { rowText: string; columnName: string; frame?: string }) {
+        const pg: Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        await this.waitUntilPageIsLoaded()
+        const allHeadersXpath = '//table[@role="grid"]//tr/th'
+        let columnIndex: number | null = null
+
+        await this.waitForLocator({ selector: allHeadersXpath, timeOut: 60000 })
+
+        try {
+            // Get all header elements to find the index
+            const allHeaderElements = await pg.locator(allHeadersXpath).filter({visible:true}).elementHandles()
+            for (let i = 0; i < allHeaderElements.length; i++) {
+                const headerText = await pg.locator(allHeadersXpath).filter({visible:true}).nth(i).innerText()
+                log.info(`Verifying Header Text: ${headerText}`)
+                if (headerText && headerText.trim() === args.columnName.trim()) {
+                    columnIndex = i
+                    log.info(`ColumnName ${headerText} is at index ${columnIndex}`)
+                    break
+                }
+            }
+            if (columnIndex === null) {
+                log.error(`Column Name "${args.columnName}" not found in Table Grid.`)
+                throw new Error(`Column Name "${args.columnName}" not found in Table Grid. for selector ${allHeadersXpath}`)
+            }
+
+            // Find the row number based on the text in the specified column
+            let rowNumber: number | null = null
+            const allRowsXpath = '//table[@role="grid"]/tbody/tr'
+            const allRows = await pg.locator(allRowsXpath).filter({visible:true}).elementHandles()
+
+            for (let i = 0; i < allRows.length; i++) {
+                const cellSelector = `//table/tbody/tr[${i + 1}]/td[not(contains(@style, 'display:none'))][${columnIndex + 1}]`
+                const cellText = await pg.locator(cellSelector).filter({visible:true}).innerText()
+
+                if (cellText && cellText.trim() === args.rowText.trim()) {
+                    rowNumber = i + 1
+                    log.info(`Row with text "${args.rowText}" found at row number ${rowNumber}`)
+                    break
+                }
+            }
+
+            if (rowNumber === null) {
+                log.error(`Text "${args.rowText}" not found in column "${args.columnName}" in Table Grid.`)
+                throw new Error(`Text "${args.rowText}" not found in column "${args.columnName}" in Table Grid.`)
+            }
+
+            const cellSelector = `//table/tbody/tr[${rowNumber}]/td[not(contains(@style, 'display:none'))][${columnIndex + 1}]`
+            log.info(`Clicking Table Grid cell with selector ${cellSelector}`)
+            await this.click({ selector: cellSelector })
+            log.info(`Clicked on Table Grid cell with selector ${cellSelector}`)
+
+        } catch (ex) {
+            log.error(`Failed to click Table Grid row with exception ${ex}`)
+            throw new Error(`Failed to click Table Grid row with exception ${ex}`)
+        }
+    }
+
+        /**
+     * Gets the row number of a specific row in a Grid table based on text in a given column.
+     * @param rowText  - Text to find in the specified column.
+     * @param columnName - The column Name to search for the text.
+     * @Optional frame   - The frame selector to use when searching for the element.
+     * @returns A promise that resolves to the row number (starting from 1), or null if not found.
+     */
+        @step('Get Table Grid Row Number by Column Name and Text')
+        async getTableGridRowNumberByColumnNameAndText(args: { rowText: string; columnName: string; frame?: string ; window?:Page}): Promise<number | null> {
+            log.info(`Getting Table Grid row number with Row Text: ${args.rowText} and Column Name: ${args.columnName}`)
+            const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+            await this.waitUntilPageIsLoaded()
+            const allHeadersXpath = '//table[@role="grid"]//tr/th'
+            let columnIndex: number | null = null
+    
+            await this.waitForLocator({ selector: allHeadersXpath, timeOut: 60000 })
+    
+            try {
+                // Get all header elements to find the index
+                const allHeaderElements = await pg.locator(allHeadersXpath).filter({visible:true}).elementHandles()
+                for (let i = 0; i < allHeaderElements.length; i++) {
+                    const headerText = await pg.locator(allHeadersXpath).filter({visible:true}).nth(i).innerText()
+                    log.info(`Verifying Header Text: ${headerText}`)
+                    if (headerText && headerText.trim() === args.columnName.trim()) {
+                        columnIndex = i
+                        log.info(`ColumnName ${headerText} is at index ${columnIndex}`)
+                        break
+                    }
+                }
+                if (columnIndex === null) {
+                    log.error(`Column Name "${args.columnName}" not found in Table Grid.`)
+                    throw new Error(`Column Name "${args.columnName}" not found in Table Grid. for selector ${allHeadersXpath}`)
+                }
+    
+                // Find the row number based on the text in the specified column
+                let rowNumber: number | null = null
+                const allRowsXpath = '//table[@role="grid"]/tbody/tr'
+                const allRows = await pg.locator(allRowsXpath).filter({visible:true}).elementHandles()
+    
+                for (let i = 0; i < allRows.length; i++) {
+                    const cellSelector = `//table/tbody/tr[${i + 1}]/td[not(contains(@style, 'display:none'))][${columnIndex + 1}]`
+                    const cellText = await pg.locator(cellSelector).filter({visible:true}).innerText()
+    
+                    if (cellText && cellText.trim() === args.rowText.trim()) {
+                        rowNumber = i + 1
+                        log.info(`Row with text "${args.rowText}" found at row number ${rowNumber}`)
+                        break
+                    }
+                }
+    
+                if (rowNumber === null) {
+                    log.error(`Text "${args.rowText}" not found in column "${args.columnName}" in Table Grid.`)
+                    throw new Error(`Text "${args.rowText}" not found in column "${args.columnName}" in Table Grid.`)
+                }
+    
+                return rowNumber
+    
+            } catch (ex) {
+                log.error(`Failed to get Table Grid row number with exception ${ex}`)
+                throw new Error(`Failed to get Table Grid row number with exception ${ex}`)
+            }
+        }
+
+
+            /**
+     * Clicks on a specific cell in a Grid table based on row number and column Name.
+     * @param rowNumber  - Row number (starting from 1) of Grid to click,
+     * @param columnName - The column Name to click.
+     * @Optional frame   - The frame selector to use when searching for the element.
+     */
+    @step('Click Table Grid Cell by Row and Column Name')
+    async filterTable(args: { columnName: string;filterCondition: 'Contains';text:string;frame?: string;window?: Page }) {
+        log.info(`Clicking on Table Grid cell with Column Name: ${args.columnName}`)
+        const pg: Page = args.window? args.window: args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        await this.waitUntilPageIsLoaded()
+        const filterLocator = `//table[@role="grid"]//tr/th[@data-title="${args.columnName}"]/a`
+        const filterByDropdown=`//span[@title="Operator"]//span[@role="option"]`
+        const conditionTextBox=`//div/form[1]/div[1]/input[1]`
+        try {
+
+            await this.waitForLocator({ selector: filterLocator, timeOut: 60000 })
+            log.info(`Clicking Table Grid cell with selector ${filterLocator}`)
+            await this.click({ selector: filterLocator })
+            await this.click({selector:filterByDropdown})
+            await this.selectDropDownOption({text:args.filterCondition})
+            await this.typeText({selector:conditionTextBox,text:args.text})
+            await this.click({ selector: '//button[@type="submit"]' })
+            
+        } catch (ex) {
+            log.error(`Failed to Filter Table Grid Header with exception ${ex}`)
+            throw new Error(`Failed to Filter Table Grid Header with exception ${ex}`)
+
+        }
+    }
+
+    /**
      * Verify if all checkboxes are checked, and check any unchecked checkboxes
      * @param selector Pass the XPath selector of the checkboxes to be checked
      **/
         @step('Verify and check all checkboxes if not checked')
         async VerifyAndCheckAllCheckboxes(args: { selector: string; frame?: string }) {
-            const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page;
-            log.info(`Checking and checking all checkboxes with selector ${args.selector}`);
+            const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+            log.info(`Checking and checking all checkboxes with selector ${args.selector}`)
             try {
-                const checkboxes = await pg.locator(args.selector);
-                const noOfCheckboxes = await checkboxes.count();
-                let allChecked = true;
+                const checkboxes = pg.locator(args.selector).filter({visible:true})
+                const noOfCheckboxes = await checkboxes.count()
+                let allChecked = true
                 for (let i = 0; i < noOfCheckboxes; i++) {
                     if (!(await checkboxes.nth(i).isChecked())) {
-                        allChecked = false;
-                        await checkboxes.nth(i).check();
-                        log.info(`Checkbox at index ${i} was not checked and has been checked.`);
+                        allChecked = false
+                        await checkboxes.nth(i).check()
+                        log.info(`Checkbox at index ${i} was not checked and has been checked.`)
                     }
                 }
                 if (allChecked) {
-                    log.info('All checkboxes were already checked.');
+                    log.info('All checkboxes were already checked.')
                 } else {
-                    log.info('All checkboxes are now checked.');
+                    log.info('All checkboxes are now checked.')
                 }
             } catch (ex) {
-                log.error(`Checking and checking checkboxes with selector ${args.selector} failed with exception ${ex}`);
+                log.error(`Checking and checking checkboxes with selector ${args.selector} failed with exception ${ex}`)
             }
         }
     
 
-@step('Clear Page Cache')
-async clearCache() {
-    const pg:Page = this.page;
-    await pg.context().clearCookies();
-    await pg.context().clearPermissions();
-    await pg.evaluate(() => caches.keys().then(keys => keys.forEach(key => caches.delete(key))));
-    log.info('Page cache cleared successfully');
+    /**
+     * Clear the page cache by clearing cookies, permissions, and caches.
+     * This method also reloads the page to ensure a fresh state.
+     * */
+    @step('Clear Page Cache')
+    async clearCache() {
+        const pg:Page = this.page
+        log.info('Clearing page cache...')
+        await pg.context().clearCookies()
+        await pg.context().clearPermissions()
+        await pg.evaluate(() => caches.keys().then(keys => keys.forEach(key => caches.delete(key))))
+        await this.waitUntilPageIsLoaded()
+        await pg.reload()
+        await this.waitUntilPageIsLoaded()
+        log.info('Page cache cleared successfully')
+        }
+
+    /**
+     * Select a date from the calendar based on the input in MM/DD/YYYY format.
+     * @param dateInput The date to select in MM/DD/YYYY format.
+     */
+    @step('Select Date from Calendar')
+    async selectDateFromCalendar(args : {selector:string;dateInput: string;frame?: string;window?: Page}) {
+        const pg: Page = args.window ? args.window : args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        await this.click({selector:args.selector,window:pg})
+        const [month, day, year] = args.dateInput.split('/').map(Number)
+    
+        // Open the calendar and navigate to the correct year and month
+        const calendarHeaderSelector = '.k-header a[data-action="nav-up"]'
+        const prevButtonSelector = '.k-header a[data-action="prev"]'
+        const nextButtonSelector = '.k-header a[data-action="next"]'
+        const calendarCellSelector = '.k-calendar-view td a[data-value]'
+    
+        // Wait for the calendar header to be visible
+        await this.waitForLocator({ selector: calendarHeaderSelector ,window:pg})
+    
+        // Get the current month and year displayed in the calendar
+        let currentMonthYear = await this.getInnerText({ selector: calendarHeaderSelector,window:pg })
+        let [currentMonth, currentYearString] = currentMonthYear.split(' ')
+        let currentYear = parseInt(currentYearString,10) // Explicitly parse the year as a number
+    
+        // Convert month names to numbers
+        const monthMap: { [key: string]: number } = {
+            January: 1, February: 2, March: 3, April: 4, May: 5, June: 6,
+            July: 7, August: 8, September: 9, October: 10, November: 11, December: 12,
+        }
+        let currentMonthNumber = monthMap[currentMonth]
+    
+        // Navigate to the correct year
+        while (currentYear !== year) {
+            if (currentYear > year) {
+                await this.click({ selector: prevButtonSelector,window:pg })
+            } else {
+                await this.click({ selector: nextButtonSelector,window:pg })
+            }
+            currentMonthYear = await this.getInnerText({ selector: calendarHeaderSelector,window:pg });
+            [currentMonth, currentYearString] = currentMonthYear.split(' ')
+            currentYear = parseInt(currentYearString,10) // Parse again after navigation
+            currentMonthNumber = monthMap[currentMonth]
+        }
+    
+        // Navigate to the correct month
+        while (currentMonthNumber !== month) {
+            if (currentMonthNumber > month) {
+                await this.click({ selector: prevButtonSelector,window:pg})
+            } else {
+                await this.click({ selector: nextButtonSelector,window:pg })
+            }
+            currentMonthYear = await this.getInnerText({ selector: calendarHeaderSelector,window:pg });
+            [currentMonth, currentYearString] = currentMonthYear.split(' ')
+            currentMonthNumber = monthMap[currentMonth]
+        }
+    
+        // Select the correct day
+        const daySelector = `.k-calendar-view td a[data-value="${year}/${month -1}/${day}"]`
+        await this.click({ selector: daySelector,window:pg })
+        log.info(`Selected date: ${args.dateInput}`)
     }
+
+    /**
+     * Reload the page and wait until it is fully loaded.
+     * */
+    @step()
+    async reloadPage(args?:{window?:Page}) {
+        const pg:Page = args?.window ? args.window : this.page
+        log.info('Reloading the page...')
+        await pg.reload()
+        await this.waitUntilPageIsLoaded()
+        log.info('Page reloaded successfully')
+    }
+    
+    /**
+     * Wait for a specified amount of time (in milliseconds).
+     * @param timeOut The time to wait in milliseconds.
+     * */
+    @step()
+    async waitforTimeOut(args: { timeOut: number }) {
+        log.info(`Waiting for ${args.timeOut} milliseconds`)
+        await this.page.waitForTimeout(args.timeOut)
+        log.info(`Waited for ${args.timeOut} milliseconds`)
+    }
+
 }

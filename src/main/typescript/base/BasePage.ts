@@ -2,7 +2,6 @@ import { Page } from '@playwright/test'
 
 import ENV from '../../resources/env/env'
 import { Utility } from '../helpers/Utility'
-const envConfig = require('../../resources/env/envConfig.json')
 
 export class BasePage {
     readonly page: Page

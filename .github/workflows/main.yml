@@ -32,7 +32,7 @@ jobs:
         run: npx playwright install
 
       - name: Run Playwright tests
-        run: xvfb-run npm run updateNaukari
+        run: xvfb-run npm run test
         env:
           NAUKARI_USERNAME: ${{ env.NAUKARI_USERNAME }}
           NAUKARI_PASSWORD: ${{ env.NAUKARI_PASSWORD }}
