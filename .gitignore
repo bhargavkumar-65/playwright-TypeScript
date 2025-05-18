@@ -10,3 +10,6 @@ test-results/
 emailReport.html
 SMTPUtil/
 blob-report/
+log/
+browserstackSetupConfig.json
+playwright-browserstack-sdk.config.temp.json

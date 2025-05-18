@@ -1,0 +1,9 @@
+userName: "bhargavmurariset1"
+accessKey: "9mAQHp4ytJX2TwHSC3KE"
+buildName: "TestingMaster.in Prod"
+projectName: "TestingMasterDotIn"
+CUSTOM_TAG_1: "Prod"
+# Use CUSTOM_TAG_<N> and set more build tags as you need.
+testObservability: true
+browserstackAutomation: false # Set to true for tests on BrowserStack products.
+...

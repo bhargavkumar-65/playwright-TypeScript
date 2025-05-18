@@ -1,4 +1,5 @@
 import { BasePage } from '../../base/BasePage'
+import { step } from '../../helpers/Decorators'
 
 export class NaukariPageActions extends BasePage {
 
@@ -10,6 +11,8 @@ export class NaukariPageActions extends BasePage {
     static editResumeHeadLineBtn='//span[text()="Resume headline"]//following-sibling::span[text()="editOneTheme"]'
     static saveBtn='//button[text()="Save"]'
     static successMsg='//p[text()="Success"]'
+    
+    @step()
     async loginintoNaukari() {
         await this.page.goto(this.ENV.BASE_URL)
         await this.utility.waitUntilPageIsLoaded()

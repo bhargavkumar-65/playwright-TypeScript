@@ -11,7 +11,7 @@ import type { devices, PlaywrightTestConfig } from '@playwright/test'
 const config: PlaywrightTestConfig = {
     globalSetup: require.resolve('./src/main/typescript/helpers/global-setup.ts'),
     testDir: './src/test/typescript',
-    testMatch: /.*\.spec\.ts/,
+    testMatch: 'testingMaster*.spec.ts',
     /* Maximum time one test can run for. */
     timeout: 1200000,
     expect: {
@@ -22,7 +22,7 @@ const config: PlaywrightTestConfig = {
         timeout: 5000,
     },
     /* Run tests in files in parallel */
-    fullyParallel: false,
+    fullyParallel: true,
     /* Fail the build on CI if you accidentally left test.only in the source code. */
     forbidOnly: !!process.env.CI,
     /* Retry on CI only */
@@ -71,6 +71,12 @@ const config: PlaywrightTestConfig = {
             },
         },
     ],
+
+    webServer: process.env.environmentToRun==='prod' ? undefined : {
+    command: 'npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+  },
 }
 
 export default config

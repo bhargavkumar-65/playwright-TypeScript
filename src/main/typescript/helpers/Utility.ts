@@ -140,6 +140,7 @@ export class Utility {
         return attributeValue
 
     }
+    
 
     /**
      * Wait Until The Page Is Loaded
@@ -248,9 +249,9 @@ export class Utility {
      * @returns
      */
     @step()
-    async scrollIntoView(args: { selector: string; frame?: string }) {
+    async scrollIntoView(args: { selector: string; frame?: string;occurance:number }) {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
-        await pg.locator(args.selector).filter({visible:true}).scrollIntoViewIfNeeded()
+        await pg.locator(args.selector).filter({visible:true}).nth(args.occurance?? 1).scrollIntoViewIfNeeded()
         log.info(`scrolled until the element with selector ${args.selector} is in view`)
     }
 
@@ -427,6 +428,20 @@ export class Utility {
     async getAllTextContents(args: { selector: string; frame?: string }): Promise<string[]> {
         const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
         const text = await pg.locator(args.selector).filter({visible:true}).allTextContents()
+        log.info(`extracted text from element with selector ${args.selector} is ${text}`)
+        return text
+    }
+
+        /**
+     *
+     * @param selector element selector
+     * @param frame frame selector
+     * @returns returns text of all elements including hidden elements and returns array of strings
+     */
+    @step('Get Element Text content')
+    async getTextContent(args: { selector: string; frame?: string }) {
+        const pg:Page = args.frame ? await this.getFrame({ selector: args.frame }) : this.page
+        const text = await pg.locator(args.selector).filter({visible:true}).textContent()
         log.info(`extracted text from element with selector ${args.selector} is ${text}`)
         return text
     }

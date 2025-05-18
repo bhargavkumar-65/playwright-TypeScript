@@ -206,7 +206,7 @@ jobs:
                 script: |
                     cd src/main/resources/smtp-email/SMTPUtil/
                     ls -ltr
-                    smtp-util --sender:${Host} --toList:${emailID} --subject:Sharding_POC  --htmlFile:$(Build.SourcesDirectory)/emailReport.html --displayName:Sharding POC Automation Results --attachments:$(Build.SourcesDirectory)/emailReport.html --port:465 --host:$(Smtp_Host) --userID:kognifauto@kognif.ai --password:$(Smtp_Password)
+                    smtp-util --sender:${Host} --toList:${emailID} --subject:Sharding_POC  --htmlFile:$(Build.SourcesDirectory)/emailReport.html --displayName:Sharding POC Automation Results --attachments:$(Build.SourcesDirectory)/emailReport.html --port:465 --host:$(Smtp_Host) --userID:UserName --password:$(Smtp_Password)
             displayName: 'Send Email Report'
             condition: always()
 

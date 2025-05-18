@@ -5,7 +5,8 @@
     "main": "build-js/src/index.js",
     "scripts": {
         "clean": "rimraf build-js & rimraf allure-results",
-        "test": "cross-env environmentToRun=prod npx playwright test --workers=3",
+        "test:prod": "cross-env environmentToRun=prod npx browserstack-node-sdk playwright test --workers=3",
+        "test:dev": "cross-env environmentToRun=prod npx browserstack-node-sdk playwright test --workers=3",
         "shard": "cross-env environmentToRun=prod npx playwright test --project=$(project) --shard=$(shard)",
         "tsc": "tsc",
         "build": "npm run clean & npm run tsc",
@@ -48,6 +49,9 @@
         "typescript": "^5.6.3"
     },
     "dependencies": {
+        "@testomatio/reporter": "^1.6.16",
+        "@types/node": "^22.15.18",
+        "browserstack-node-sdk": "^1.35.6",
         "allure-commandline": "^2.20.1",
         "allure-playwright": "^2.0.0-beta.20",
         "cheerio": "^1.0.0-rc.12",
