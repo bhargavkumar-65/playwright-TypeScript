@@ -772,6 +772,15 @@ export class Utility {
     }
 
     /**
+     * Generate Random Number based on length
+     * @param length number of digits in the random number
+     * @returns random number with specified number of digits
+     */
+    getRandomNumber(length: number): string {
+        return Math.random().toString().slice(2, 2 + length)
+    }
+
+    /**
      * Hover On An Element With Selector
      * @param selector Pass the selector of element for which Hover action has to be performed
      * @param frame frame selector
