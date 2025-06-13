@@ -51,6 +51,7 @@ test('Content constraints', async ({ page }) => {
 test('Search filtering', async ({ homePageActions }) => {
     await homePageActions.search('Selenium')
     await homePageActions.clickOnFirstArticle()
+    
 })
 
 test('Special character handling', async ({ homePageActions }) => {

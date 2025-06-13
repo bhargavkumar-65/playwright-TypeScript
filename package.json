@@ -19,7 +19,6 @@
         "record": "npx playwright codegen",
         "playwrightreport": "npx playwright show-report",
         "generateEmailReport": "npx ts-node src\\main\\resources\\allure\\emailGenerator.ts"
-
     },
     "keywords": [
         "Playwright",
@@ -51,9 +50,9 @@
     "dependencies": {
         "@testomatio/reporter": "^1.6.16",
         "@types/node": "^22.15.18",
-        "browserstack-node-sdk": "^1.35.6",
         "allure-commandline": "^2.20.1",
         "allure-playwright": "^2.0.0-beta.20",
+        "browserstack-node-sdk": "^1.35.10",
         "cheerio": "^1.0.0-rc.12",
         "csv": "^6.2.0",
         "csv-writer": "^1.6.0",
@@ -68,8 +67,9 @@
         "read-json-file": "^1.0.1",
         "read-text-file": "^1.1.0",
         "test-results-reporter": "^1.0.15",
+        "ts-node": "^10.9.2",
         "update-json-file": "^1.1.1",
         "winston": "^3.14.2",
-        "ts-node": "^10.9.2"
+                "zod": "^3.25.60"
     }
 }

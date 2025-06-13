@@ -12,8 +12,8 @@ This document provides a comprehensive guide to using the Playwright automation 
 Before you begin, ensure you have the following installed:
 
 - **Node.js**: Version 12 or higher.
-- **npm** or **yarn**: Package managers for installing dependencies.
-- **Visual Studio Code (VS Code)**: Recommended IDE for development.
+- **npm** or **yarn**: Package managers for insta*lling dependencies.
+- **Visual Studio Code (VS Code)**: Recommended / for development.
 - **Git**: For cloning the project repository.
 
 ## Setup Instructions

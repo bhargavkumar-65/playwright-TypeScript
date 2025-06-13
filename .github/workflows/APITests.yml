@@ -1,0 +1,149 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# permissions for GitHub Pages deployment
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install dependencies
+        run: npm install
+        
+      - name: Install playwright
+        run: npx playwright install
+
+      - name: Run Playwright tests
+        run: xvfb-run npm run ApiTests
+
+      - name: Generate Allure Report
+        if: always()
+        run: npx allure generate allure-results --clean
+
+      - name: Create reports directory structure
+        if: always()
+        run: |
+          buildId="${{ github.run_number }}"
+          commitHash="${{ github.sha }}"
+          commitHashShort=${commitHash:0:7}
+          
+          # Create main reports directory
+          mkdir -p "./reports"
+          
+          # Create build-specific directories
+          allureDir="./reports/allure-report-build-$buildId"
+          playwrightDir="./reports/playwright-report-build-$buildId"
+          
+          mkdir -p "$allureDir"
+          mkdir -p "$playwrightDir"
+          
+          # Copy Allure reports
+          if [ -d "./allure-report" ]; then
+              cp -r ./allure-report/* "$allureDir/" 2>/dev/null || true
+          fi
+          
+          # Copy Playwright reports
+          if [ -d "./playwright-report" ]; then
+              cp -r ./playwright-report/* "$playwrightDir/" 2>/dev/null || true
+          fi
+          
+          # Copy test results
+          if [ -d "./test-results" ]; then
+              cp -r ./test-results "$playwrightDir/" 2>/dev/null || true
+          fi
+
+      - name: Create index page
+        if: always()
+        run: |
+          buildId="${{ github.run_number }}"
+          commitHash="${{ github.sha }}"
+          commitHashShort=${commitHash:0:7}
+          timestamp=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          
+          # Create simple HTML index
+          cat > "./reports/index.html" << EOF
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Test Reports - Build $buildId</title>
+              <style>
+                  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 40px; }
+                  .header { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+                  .reports { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+                  .report-card { border: 1px solid #e1e5e9; border-radius: 8px; padding: 20px; background: white; }
+                  .report-card h3 { margin-top: 0; color: #0366d6; }
+                  .report-link { display: inline-block; padding: 10px 16px; background: #0366d6; color: white; text-decoration: none; border-radius: 6px; margin-top: 10px; }
+                  .report-link:hover { background: #0356cc; }
+                  .info { color: #586069; }
+              </style>
+          </head>
+          <body>
+              <div class="header">
+                  <h1>🎭 Playwright API Test Reports</h1>
+                  <div class="info">
+                      <p><strong>Build:</strong> #$buildId</p>
+                      <p><strong>Commit:</strong> $commitHashShort</p>
+                      <p><strong>Generated:</strong> $timestamp</p>
+                  </div>
+              </div>
+              
+              <div class="reports">
+                  <div class="report-card">
+                      <h3>📊 Allure Report</h3>
+                      <p>Comprehensive test execution report with detailed analytics, test history, and failure analysis.</p>
+                      <a href="allure-report-build-$buildId/index.html" class="report-link">View Allure Report</a>
+                  </div>
+                  
+                  <div class="report-card">
+                      <h3>🎯 Playwright Report</h3>
+                      <p>Native Playwright test report with test traces, screenshots, and detailed execution logs.</p>
+                      <a href="playwright-report-build-$buildId/index.html" class="report-link">View Playwright Report</a>
+                  </div>
+              </div>
+          </body>
+          </html>
+          EOF
+
+      - name: Setup Pages
+        if: always()
+        uses: actions/configure-pages@v5
+        
+      - name: Upload artifact
+        if: always()
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./reports
+          
+      - name: Deploy to GitHub Pages
+        if: always()
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
