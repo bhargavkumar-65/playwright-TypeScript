@@ -1367,4 +1367,36 @@ export class Utility {
         log.info(`Waited for ${args.timeOut} milliseconds`)
     }
 
+
+    /**
+ * @description This method reads the BookStoreRequests.json file which is under src/test/resources and retrieves the request body
+ * @param category The category (e.g., "login", "registration", "books")
+ * @param testType The test type (e.g., "valid", "missingEmail", etc.)
+ * @returns Object representing the request body
+ */
+@step()
+async getRequestBody(category: string, testType: string) {
+    const filePath = path.join(__dirname, '../../../test/resources', 'BookStoreRequests.json')
+    if (!fs.existsSync(filePath)) {
+        throw new Error(`File not found: ${filePath}`)
+    }
+    const fileContent = fs.readFileSync(filePath, 'utf8')
+    
+    const allRequests = JSON.parse(fileContent)
+    const categoryRequests = allRequests[category]
+    
+    if (!categoryRequests) {
+        throw new Error(`Category '${category}' not found in BookStoreRequests.json`)
+    }
+    
+    const requestBody = categoryRequests[testType]
+    
+    if (!requestBody) {
+        throw new Error(`Test type '${testType}' not found in category '${category}'`)
+    }
+    
+    return requestBody
+}
+
+
 }
