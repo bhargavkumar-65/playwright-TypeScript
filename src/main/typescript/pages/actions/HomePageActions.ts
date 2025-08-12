@@ -80,7 +80,7 @@ export class HomePageActions extends BasePage {
 
     @step()
     async clickOnArticleCard(index: number) {
-        await this.utility.click({ selector: HomePageActions.articleCards, occurance: index })
+        await this.utility.click({ selector: HomePageActions.articleCards, occurance: index });
     }
   
 }

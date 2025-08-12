@@ -522,3 +522,435 @@ export function debug() {
     }
   }
 }
+
+/**
+ * Test decorator that creates a Playwright test directly from a class method.
+ * Allows you to write test methods in classes and have them automatically registered as tests.
+ * 
+ * @param title - Optional title to append to the test name
+ * 
+ * @example
+ * ```typescript
+ * class LoginTests {
+ *   @testDecorator('should login with valid credentials')
+ *   async testLogin() {
+ *     // test implementation
+ *   }
+ * 
+ *   @testDecorator() // Uses default naming: methodName
+ *   async verifyDashboard() {
+ *     // test implementation
+ *   }
+ * }
+ * ```
+ * 
+ * @remarks
+ * - If no title is provided, uses the method name as the test title
+ * - If title is provided, uses the format: `methodName - title`
+ * - Environment name is prepended to the test title (e.g., "DEVELOPMENT: testLogin")
+ * - The decorated method becomes a Playwright test that will be executed in the test run
+ */
+/**
+ * Test decorator that creates a Playwright test directly from a class method.
+ * Allows you to write test methods in classes and have them automatically registered as tests.
+ * 
+ * @param title - Optional title to append to the test name
+ * 
+ * @example
+ * ```typescript
+ * class LoginTests {
+ *   @testDecorator('should login with valid credentials')
+ *   async testLogin({ page }) {
+ *     await page.goto('/login');
+ *     // test implementation
+ *   }
+ * 
+ *   @testDecorator() // Uses default naming: methodName
+ *   async verifyDashboard({ page }) {
+ *     // test implementation
+ *   }
+ * }
+ * ```
+ * 
+ * @remarks
+ * - If no title is provided, uses the method name as the test title
+ * - If title is provided, uses the format: `methodName - title`
+ * - Environment name is prepended to the test title (e.g., "DEVELOPMENT: testLogin")
+ * - The decorated method becomes a Playwright test that will be executed in the test run
+ * - Method parameters will receive the Playwright fixtures
+ */
+export function testDecorator(title?: string) {
+  return function (target: any, context: ClassMethodDecoratorContext): any {
+    const methodName = context.name as string
+    const env = process.env.NODE_ENV || 'development'
+    const testTitle = title ? `${env.toUpperCase()}: ${methodName} - ${title}` : `${env.toUpperCase()}: ${methodName}`
+    
+    // Register a test using the original method
+    test(testTitle, async (fixtures) => {
+      // Just call the original method with fixtures
+      return await target(fixtures)
+    })
+    
+    // Return the original method unchanged
+    return target
+  }
+}
+
+/**
+ * Enhanced test decorator that creates a Playwright test with support for test options and fixtures.
+ * Provides greater flexibility for test configuration compared to the basic testDecorator.
+ * 
+ * @param config - Test configuration options
+ * @param config.title - Optional title to append to the test name
+ * @param config.options - Optional Playwright test options (timeout, annotations, etc.)
+ * @param config.tags - Optional array of tags to associate with the test
+ * @param config.conditionalSkip - Optional function that returns true if the test should be skipped
+ * 
+ * @example
+ * ```typescript
+ * class ApiTests {
+ *   @enhancedTest({
+ *     title: 'should create a new user',
+ *     options: { timeout: 60000 },
+ *     tags: ['api', 'user-management']
+ *   })
+ *   async testCreateUser({ request }) {
+ *     const response = await request.post('/api/users', {
+ *       data: { name: 'John Doe', email: 'john@example.com' }
+ *     });
+ *     expect(response.status()).toBe(201);
+ *   }
+ *   
+ *   @enhancedTest({
+ *     conditionalSkip: () => process.env.SKIP_PAYMENT_TESTS === 'true'
+ *   })
+ *   async testPaymentProcessing() {
+ *     // Test implementation
+ *   }
+ * }
+ * ```
+ * 
+ * @remarks
+ * - Supports all Playwright test options like timeout, annotations, retries
+ * - Can conditionally skip tests based on environment variables or other logic
+ * - Supports adding tags for better test organization and filtering
+ * - Preserves the original method for potential direct invocation
+ */
+/**
+ * Test decorator for class methods that conditionally runs or skips a test.
+ * 
+ * @param config - Configuration object for the test
+ * @param config.title - Optional title to append to the test name
+ * @param config.tags - Optional tags to add to the test name in brackets
+ * @param config.conditionalSkip - Optional function that returns true if test should be skipped
+ * 
+ * @example
+ * ```typescript
+ * class ApiTests {
+ *   @conditionalTest({ 
+ *     title: 'should create a user',
+ *     tags: ['api', 'user'],
+ *     conditionalSkip: () => process.env.SKIP_API_TESTS === 'true'
+ *   })
+ *   async createUser({ page, request }) {
+ *     // Test implementation
+ *   }
+ * }
+ * ```
+ */
+export function conditionalTest(config: {
+  title?: string
+  tags?: string[]
+  conditionalSkip?: () => boolean
+}) {
+  return function (target: any, context: ClassMethodDecoratorContext): any {
+    const methodName = context.name as string
+    const env = process.env.NODE_ENV || 'development'
+    const testTitle = config.title ? `${env.toUpperCase()}: ${methodName} - ${config.title}` : `${env.toUpperCase()}: ${methodName}`
+    
+    // Add tags to title if provided
+    const tagString = config.tags?.length ? ` [${config.tags.join(', ')}]` : ''
+    const fullTitle = `${testTitle}${tagString}`
+      
+    // Check if test should be conditionally skipped
+    if (config.conditionalSkip && config.conditionalSkip()) {
+      // Just register a skipped test
+      test.skip(fullTitle, () => {})
+    } else {
+      // Register normal test
+      test(fullTitle, async (fixtures) => {
+        return await target(fixtures)
+      })
+    }
+    
+    // Return the original method unchanged
+    return target
+  }
+}
+
+/**
+ * Creates a Playwright test directly from a class method with a simplified syntax.
+ * Allows providing a direct test title string or configuration object.
+ * 
+ * @param titleOrConfig - Either a string title or configuration object
+ * 
+ * @example
+ * ```typescript
+ * class ProductPageTests {
+ *   @testMethod('should display product details correctly')
+ *   async verifyProductDetails({ page }) {
+ *     // test implementation
+ *   }
+ * 
+ *   @testMethod('should add product to cart')
+ *   async addToCart({ page }) {
+ *     // test implementation
+ *   }
+ * }
+ * ```
+ * 
+ * @remarks
+ * - Provides a cleaner syntax for creating tests from class methods
+ * - Method parameter will receive the Playwright fixtures
+ * - Environment name is always prepended to the test title
+ */
+export function testMethod(title: string) {
+  return function (target: any, context: ClassMethodDecoratorContext): any {
+    const methodName = context.name as string
+    const env = process.env.NODE_ENV || 'development'
+    
+    // Create the test title with environment prefix
+    const testTitle = `${env.toUpperCase()}: ${title || methodName}`
+    
+    // Register the test
+    test(testTitle, async (fixtures) => {
+      // Just call the original method with fixtures
+      return await target(fixtures)
+    })
+    
+    // Return the original method unchanged
+    return target
+  }
+}
+
+/**
+ * Creates a data-driven Playwright test directly from a class method.
+ * Runs the test once for each data set provided.
+ * 
+ * @param testData - Array of test data or function that returns array of test data
+ * @param options - Optional configuration object
+ * @param options.title - Optional base title for the test (will be suffixed with data details)
+ * @param options.tags - Optional tags to add to the test name in brackets
+ * @param options.conditionalSkip - Optional function that takes a data item and returns true if that test case should be skipped
+ * 
+ * @example
+ * ```typescript
+ * class LoginTests {
+ *   @testWithData([
+ *     { username: 'user1', password: 'pass1', expected: 'Welcome User1' },
+ *     { username: 'user2', password: 'pass2', expected: 'Welcome User2' },
+ *     { username: 'invalid', password: 'wrong', expected: 'Invalid credentials' }
+ *   ], { title: 'should validate login scenarios' })
+ *   async testLogin({ page }, testData) {
+ *     await page.goto('/login');
+ *     await page.fill('[data-test="username"]', testData.username);
+ *     await page.fill('[data-test="password"]', testData.password);
+ *     await page.click('[data-test="login-button"]');
+ *     
+ *     const message = await page.textContent('.message');
+ *     expect(message).toBe(testData.expected);
+ *   }
+ * }
+ * ```
+ * 
+ * @remarks
+ * - Each dataset creates a separate Playwright test
+ * - Test titles include the dataset index and stringified data (truncated if too long)
+ * - The data is passed as the second parameter to the test method after fixtures
+ * - Environment name is prepended to all test titles
+ * - Test can be conditionally skipped based on the specific data item
+ */
+export function testWithData<T>(
+  testData: T[] | (() => T[]), 
+  options: { 
+    title?: string
+    tags?: string[]
+    conditionalSkip?: (data: T) => boolean 
+  } = {},
+) {
+  return function (target: any, context: ClassMethodDecoratorContext): any {
+    const methodName = context.name as string
+    const env = process.env.NODE_ENV || 'development'
+    const resolvedData = typeof testData === 'function' ? testData() : testData
+    
+    // Register a separate test for each data entry
+    resolvedData.forEach((data, index) => {
+      // Create appropriate test title
+      const baseTitle = options.title || methodName
+      const tagString = options.tags?.length ? ` [${options.tags.join(', ')}]` : ''
+        // Format the data for title display, truncating if too long
+      const dataStr = JSON.stringify(data)
+      const shortDataStr = dataStr.length > 50 ? `${dataStr.substring(0, 47)}...` : dataStr
+      
+      // Complete title with all elements
+      const testTitle = `${env.toUpperCase()}: ${baseTitle} (${index + 1}/${resolvedData.length}): ${shortDataStr}${tagString}`
+      
+      // Check if this specific test should be skipped
+      if (options.conditionalSkip && options.conditionalSkip(data)) {
+        test.skip(testTitle, () => {
+          console.log(`Skipping test case with data:`, data)
+        })
+      } else {
+        // Register normal test with data
+        test(testTitle, async (fixtures) => {
+          // Call the original method with fixtures and data
+          return await target(fixtures, data)
+        })
+      }
+    })
+    
+    // Return the original method unchanged
+    return target
+  }
+}
+
+/**
+ * Unified Test decorator that combines all test functionalities into one.
+ * Supports traditional tests, data-driven tests, conditional skipping, and test metadata.
+ * 
+ * @param config - Test configuration object or title string
+ * @param config.title - Title of the test (optional)
+ * @param config.description - Detailed description of the test purpose (optional)
+ * @param config.testCaseId - Test case ID for traceability to requirements (optional)
+ * @param config.tags - Tags for test categorization and filtering (optional)
+ * @param config.data - Data for data-driven testing (optional)
+ * @param config.skip - Boolean or function to conditionally skip the test (optional)
+ * @param config.timeout - Custom timeout for the test (optional)
+ * @param config.retries - Number of retries for the test (optional)
+ * 
+ * @example
+ * ```typescript
+ * // Simple test with title
+ * @Test('should display the login page')
+ * async testLoginPageDisplay({ page }) {
+ *   await page.goto('/login')
+ *   await expect(page.locator('h1')).toHaveText('Login')
+ * }
+ * 
+ * // Test with metadata
+ * @Test({
+ *   title: 'User can login with valid credentials',
+ *   description: 'Verifies that a user can successfully login with valid credentials',
+ *   testCaseId: 'TC-001',
+ *   tags: ['login', 'smoke'],
+ * })
+ * async testLogin({ page }) {
+ *   // Test implementation
+ * }
+ * 
+ * // Data-driven test
+ * @Test({
+ *   title: 'Login validation handles various scenarios',
+ *   testCaseId: 'TC-002',
+ *   data: [
+ *     { username: 'valid@example.com', password: 'valid123', expectSuccess: true },
+ *     { username: 'invalid@example.com', password: 'wrong', expectSuccess: false },
+ *   ]
+ * })
+ * async testLoginScenarios({ page }, testData) {
+ *   // Data-driven test implementation using testData parameter
+ * }
+ * ```
+ * 
+ * @remarks
+ * - For simple tests, you can pass a string directly as the title
+ * - For data-driven tests, the test data is passed as the second parameter to the test method
+ * - Test metadata (testCaseId, description) is included in the test report
+ * - Environment name is prepended to all test titles
+ * - If data is provided, creates a separate test for each data item
+ */
+export function Test(config: string | {
+  title?: string
+  description?: string
+  testCaseId?: string
+  tags?: string[]
+  data?: any[] | (() => any[])
+  skip?: boolean | (() => boolean) | ((data?: any) => boolean)
+  timeout?: number
+  retries?: number
+}) {
+  return function (target: any, context: ClassMethodDecoratorContext): any {
+    const methodName = context.name as string
+    const env = process.env.NODE_ENV || 'development'
+    
+    // Process config based on type
+    const isStringConfig = typeof config === 'string'
+    const title = isStringConfig ? config : (config.title || methodName)
+    const description = isStringConfig ? undefined : config.description
+    const testCaseId = isStringConfig ? undefined : config.testCaseId
+    const tags = isStringConfig ? undefined : config.tags
+    const testData = isStringConfig ? undefined : config.data
+    const skipConfig = isStringConfig ? undefined : config.skip
+    const timeout = isStringConfig ? undefined : config.timeout
+    
+    // Format test title components
+    const idPrefix = testCaseId ? `[${testCaseId}] ` : ''
+    const tagString = tags?.length ? ` [${tags.join(', ')}]` : ''
+    const baseTitle = `${env.toUpperCase()}: ${idPrefix}${title}`
+    
+    // Create test options
+    const testOptions: any = {}
+    if (timeout) testOptions.timeout = timeout
+    if (description) testOptions.annotation = { description }
+    
+    // Function to determine if a test should be skipped
+    const shouldSkip = (data?: any): boolean => {
+      if (skipConfig === undefined) return false
+      if (typeof skipConfig === 'boolean') return skipConfig
+      return typeof skipConfig === 'function' ? skipConfig(data) : false
+    }
+
+    // If no test data provided, create a single test
+    if (!testData) {
+      const fullTitle = `${baseTitle}${tagString}`
+      
+      if (shouldSkip()) {
+        test.skip(fullTitle, () => {
+          console.log(`Skipping test: ${fullTitle}`)
+        })
+      } else {
+        test(fullTitle, async (fixtures) => {
+          return await target(fixtures)
+        }, testOptions)
+      }
+    } else {
+      // Handle data-driven test case
+      const resolvedData = typeof testData === 'function' ? testData() : testData
+      
+      // Create a separate test for each data item
+      resolvedData.forEach((data, index) => {
+        // Format data for title, truncating if too long
+        const dataStr = JSON.stringify(data)
+        const shortDataStr = dataStr.length > 40 ? `${dataStr.substring(0, 37)}...` : dataStr
+        
+        // Create full title with data information
+        const fullTitle = `${baseTitle} (${index + 1}/${resolvedData.length}): ${shortDataStr}${tagString}`
+        
+        // Check if this specific test should be skipped
+        if (shouldSkip(data)) {
+          test.skip(fullTitle, () => {
+            console.log(`Skipping data-driven test case: ${fullTitle}`)
+          })
+        } else {
+          test(fullTitle, async (fixtures) => {
+            // Call the original method with fixtures and data
+            return await target(fixtures, data)
+          }, testOptions)
+        }
+      })
+    }
+    
+    // Return the original method unchanged
+    return target
+  }
+}
